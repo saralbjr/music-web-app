@@ -37,13 +37,26 @@ export default function PlaylistPage() {
 
   const fetchPlaylist = async () => {
     try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (!user.id) {
-        router.push("/auth/login");
+      const storedUser = localStorage.getItem("user");
+      const token = localStorage.getItem("token");
+      if (!storedUser || !token) {
+        router.replace("/auth/login");
+        setLoading(false);
         return;
       }
 
-      const response = await fetch(`/api/playlists?userId=${user.id}`);
+      const user = JSON.parse(storedUser);
+      if (!user.id) {
+        router.replace("/auth/login");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/playlists?userId=${user.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data = await response.json();
 
       if (data.success) {

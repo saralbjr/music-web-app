@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
 
 /**
@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
  */
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const [playlists, setPlaylists] = useState<any[]>([]);
 
   useEffect(() => {
@@ -17,9 +18,14 @@ export default function Sidebar() {
     const fetchPlaylists = async () => {
       try {
         const user = localStorage.getItem("user");
-        if (user) {
+        const token = localStorage.getItem("token");
+        if (user && token) {
           const userData = JSON.parse(user);
-          const response = await fetch(`/api/playlists?userId=${userData.id}`);
+          const response = await fetch(`/api/playlists?userId=${userData.id}`, {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          });
           const data = await response.json();
           if (data.success) {
             setPlaylists(data.data || []);
@@ -31,6 +37,11 @@ export default function Sidebar() {
     };
 
     fetchPlaylists();
+    window.addEventListener("auth-change", fetchPlaylists);
+
+    return () => {
+      window.removeEventListener("auth-change", fetchPlaylists);
+    };
   }, []);
 
   const isActive = (path: string) => pathname === path;
@@ -129,7 +140,17 @@ export default function Sidebar() {
 
       {/* Create Playlist Button */}
       <div className="px-3 mb-2">
-        <button className="flex items-center gap-4 px-3 py-2 rounded-md text-gray-400 hover:text-white hover:bg-[#181818] transition-all w-full group">
+        <button
+          onClick={() => {
+            const user = localStorage.getItem("user");
+            if (!user) {
+              router.push("/auth/login");
+              return;
+            }
+            router.push("/playlists");
+          }}
+          className="flex items-center gap-4 px-3 py-2 rounded-md text-gray-400 hover:text-white hover:bg-[#181818] transition-all w-full group"
+        >
           <svg
             className="w-6 h-6"
             fill="currentColor"

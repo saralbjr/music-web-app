@@ -33,10 +33,16 @@ export default function HomePage() {
 
       // Fetch playlists
       const user = localStorage.getItem("user");
-      if (user) {
+      const token = localStorage.getItem("token");
+      if (user && token) {
         const userData = JSON.parse(user);
         const playlistsResponse = await fetch(
-          `/api/playlists?userId=${userData.id}`
+          `/api/playlists?userId=${userData.id}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
         const playlistsData = await playlistsResponse.json();
         if (playlistsData.success) {

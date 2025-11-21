@@ -18,22 +18,31 @@ export default function LibraryPage() {
   const [activeTab, setActiveTab] = useState<"playlists" | "songs">("playlists");
 
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (!user) {
-      router.push("/auth/login");
+    const storedUser = localStorage.getItem("user");
+    const token = localStorage.getItem("token");
+    if (!storedUser || !token) {
+      router.replace("/auth/login");
+      setLoading(false);
       return;
     }
 
-    fetchData();
+    const user = JSON.parse(storedUser);
+    if (!user.id) {
+      router.replace("/auth/login");
+      setLoading(false);
+      return;
+    }
+
+    fetchData(user.id, token);
   }, [router]);
 
-  const fetchData = async () => {
+  const fetchData = async (userId: string, token: string) => {
     try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (!user.id) return;
-
-      // Fetch playlists
-      const playlistsResponse = await fetch(`/api/playlists?userId=${user.id}`);
+      const playlistsResponse = await fetch(`/api/playlists?userId=${userId}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const playlistsData = await playlistsResponse.json();
       if (playlistsData.success) {
         setPlaylists(playlistsData.data || []);

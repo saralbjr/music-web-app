@@ -22,9 +22,10 @@ export default function PlaylistsPage() {
   const [newPlaylistName, setNewPlaylistName] = useState("");
 
   useEffect(() => {
-    const user = localStorage.getItem("user");
-    if (!user) {
-      router.push("/auth/login");
+    const storedUser = localStorage.getItem("user");
+    const token = localStorage.getItem("token");
+    if (!storedUser || !token) {
+      router.replace("/auth/login");
       return;
     }
 
@@ -33,10 +34,26 @@ export default function PlaylistsPage() {
 
   const fetchPlaylists = async () => {
     try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (!user.id) return;
+      const storedUser = localStorage.getItem("user");
+      const token = localStorage.getItem("token");
+      if (!storedUser || !token) {
+        router.replace("/auth/login");
+        setLoading(false);
+        return;
+      }
 
-      const response = await fetch(`/api/playlists?userId=${user.id}`);
+      const user = JSON.parse(storedUser);
+      if (!user.id) {
+        router.replace("/auth/login");
+        setLoading(false);
+        return;
+      }
+
+      const response = await fetch(`/api/playlists?userId=${user.id}`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
       const data = await response.json();
 
       if (data.success) {
@@ -52,13 +69,24 @@ export default function PlaylistsPage() {
   const handleCreatePlaylist = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      const user = JSON.parse(localStorage.getItem("user") || "{}");
-      if (!user.id) return;
+      const storedUser = localStorage.getItem("user");
+      const token = localStorage.getItem("token");
+      if (!storedUser || !token) {
+        router.replace("/auth/login");
+        return;
+      }
+
+      const user = JSON.parse(storedUser);
+      if (!user.id) {
+        router.replace("/auth/login");
+        return;
+      }
 
       const response = await fetch("/api/playlists", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: newPlaylistName,
