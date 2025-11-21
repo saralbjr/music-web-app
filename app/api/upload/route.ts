@@ -3,12 +3,18 @@ import { writeFile, mkdir } from "fs/promises";
 import { join } from "path";
 import { existsSync } from "fs";
 import { parseBuffer } from "music-metadata";
+import { requireAdmin } from "@/lib/middleware/auth";
 
 /**
  * POST /api/upload
  * Handle file uploads (MP3 and images)
  */
 export async function POST(request: NextRequest) {
+  const { response } = await requireAdmin(request);
+  if (response) {
+    return response;
+  }
+
   try {
     const formData = await request.formData();
     const audioFile = formData.get("audio") as File | null;

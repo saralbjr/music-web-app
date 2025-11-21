@@ -38,6 +38,7 @@ export default function LoginPage() {
         // Store user and token
         localStorage.setItem("user", JSON.stringify(data.data.user));
         localStorage.setItem("token", data.data.token);
+        window.dispatchEvent(new Event("auth-change"));
         router.push("/");
         router.refresh();
       } else {

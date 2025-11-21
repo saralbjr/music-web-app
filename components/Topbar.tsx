@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
@@ -12,13 +12,48 @@ export default function Topbar() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const storedUser = localStorage.getItem("user");
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
-    }
+    const syncUser = () => {
+      const storedUser = localStorage.getItem("user");
+      setUser(storedUser ? JSON.parse(storedUser) : null);
+    };
+
+    syncUser();
+    window.addEventListener("storage", syncUser);
+    window.addEventListener("auth-change", syncUser);
+
+    return () => {
+      window.removeEventListener("storage", syncUser);
+      window.removeEventListener("auth-change", syncUser);
+    };
   }, []);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setMenuOpen(false);
+      }
+    };
+
+    if (menuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [menuOpen]);
+
+  useEffect(() => {
+    if (!user) {
+      setMenuOpen(false);
+    }
+  }, [user]);
+
+  const isAdmin = user?.role === "admin";
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,7 +64,12 @@ export default function Topbar() {
 
   const handleLogout = () => {
     localStorage.removeItem("user");
+    localStorage.removeItem("token");
+    localStorage.removeItem("adminUser");
+    localStorage.removeItem("adminToken");
     setUser(null);
+    setMenuOpen(false);
+    window.dispatchEvent(new Event("auth-change"));
     router.push("/");
     router.refresh();
   };
@@ -69,40 +109,59 @@ export default function Topbar() {
       <div className="flex items-center gap-4">
         {user ? (
           <>
-            <Link
-              href="/admin/upload"
-              className="text-gray-400 hover:text-white transition-colors text-sm font-semibold"
-            >
-              Upload
-            </Link>
-            <div className="flex items-center gap-3 bg-[#181818] px-3 py-1.5 rounded-full hover:bg-[#282828] transition-colors cursor-pointer group">
-              <div className="w-7 h-7 bg-blue-500 rounded-full flex items-center justify-center">
-                <span className="text-white text-xs font-bold">
-                  {user.name?.charAt(0).toUpperCase() || "U"}
-                </span>
-              </div>
-              <span className="text-white text-sm font-semibold">
-                {user.name}
-              </span>
-              <svg
-                className="w-4 h-4 text-gray-400 group-hover:text-white"
-                fill="currentColor"
-                viewBox="0 0 20 20"
+            {isAdmin && (
+              <Link
+                href="/admin/upload"
+                className="text-gray-400 hover:text-white transition-colors text-sm font-semibold"
               >
-                <path
-                  fillRule="evenodd"
-                  d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <div className="absolute top-full right-0 mt-2 bg-[#282828] rounded-lg shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all">
-                <button
-                  onClick={handleLogout}
-                  className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-[#181818] rounded-lg"
+                Upload
+              </Link>
+            )}
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setMenuOpen((prev) => !prev)}
+                className="flex items-center gap-3 bg-[#181818] px-3 py-1.5 rounded-full hover:bg-[#282828] transition-colors"
+                aria-haspopup="menu"
+                aria-expanded={menuOpen}
+              >
+                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
+                  <span className="text-white text-sm font-bold">
+                    {user.name?.charAt(0).toUpperCase() || "U"}
+                  </span>
+                </div>
+                <span className="text-white text-sm font-semibold">
+                  {user.name}
+                </span>
+                <svg
+                  className="w-4 h-4 text-gray-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
                 >
-                  Log out
-                </button>
-              </div>
+                  <path
+                    fillRule="evenodd"
+                    d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+              {menuOpen && (
+                <div className="absolute right-0 mt-2 w-48 rounded-lg bg-[#282828] border border-[#3e3e3e] shadow-lg py-2 z-40">
+                  <Link
+                    href="/profile"
+                    className="block px-4 py-2 text-sm text-white hover:bg-[#181818] transition-colors"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Profile
+                  </Link>
+                  <button
+                    onClick={handleLogout}
+                    className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-[#181818] transition-colors"
+                  >
+                    Log out
+                  </button>
+                </div>
+              )}
             </div>
           </>
         ) : (

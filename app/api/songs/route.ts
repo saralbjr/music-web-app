@@ -3,6 +3,7 @@ import { mergeSort } from '@/lib/algorithms/mergeSort';
 import { kmpMatch } from '@/lib/algorithms/kmp';
 import connectDB from '@/lib/db';
 import Song from '@/models/Song';
+import { requireAdmin } from '@/lib/middleware/auth';
 
 /**
  * GET /api/songs
@@ -83,6 +84,11 @@ export async function GET(request: NextRequest) {
  * Create a new song
  */
 export async function POST(request: NextRequest) {
+  const { response } = await requireAdmin(request);
+  if (response) {
+    return response;
+  }
+
   try {
     const body = await request.json();
     const { title, artist, duration, audioUrl, coverUrl, category } = body;

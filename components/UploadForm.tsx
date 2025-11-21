@@ -34,6 +34,20 @@ export default function UploadForm() {
     setSuccess(false);
 
     try {
+      const storedUser =
+        localStorage.getItem('adminUser') || localStorage.getItem('user');
+      const token =
+        localStorage.getItem('adminToken') || localStorage.getItem('token');
+      const parsedUser = storedUser ? JSON.parse(storedUser) : null;
+
+      if (!parsedUser || parsedUser.role !== 'admin') {
+        throw new Error('Admin access required');
+      }
+
+      if (!token) {
+        throw new Error('Authentication token missing');
+      }
+
       // Validate form
       if (!formData.title || !formData.artist || !formData.category || !audioFile || !imageFile) {
         throw new Error('All fields are required');
@@ -46,6 +60,9 @@ export default function UploadForm() {
 
       const uploadResponse = await fetch('/api/upload', {
         method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
         body: uploadFormData,
       });
 
@@ -73,6 +90,7 @@ export default function UploadForm() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(songData),
       });
