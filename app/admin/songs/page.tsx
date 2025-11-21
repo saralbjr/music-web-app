@@ -32,6 +32,12 @@ export default function AdminSongsPage() {
     coverUrl: "",
     category: "",
   });
+  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [modalError, setModalError] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [detectedDuration, setDetectedDuration] = useState<number | null>(null);
+  const isEditing = Boolean(editingSong);
 
   useEffect(() => {
     fetchSongs();
@@ -39,6 +45,7 @@ export default function AdminSongsPage() {
 
   const fetchSongs = async () => {
     try {
+      setLoading(true);
       const headers = getAuthHeaders();
       const url = search
         ? `/api/admin/songs?search=${encodeURIComponent(search)}`
@@ -76,6 +83,10 @@ export default function AdminSongsPage() {
   };
 
   const handleEdit = (song: Song) => {
+    setModalError("");
+    setAudioFile(null);
+    setImageFile(null);
+    setDetectedDuration(song.duration);
     setEditingSong(song);
     setFormData({
       title: song.title,
@@ -90,40 +101,167 @@ export default function AdminSongsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setModalError("");
+    setSaving(true);
+
     try {
       const headers = getAuthHeaders();
-      const url = editingSong
-        ? `/api/admin/songs/${editingSong._id}`
+      const url = isEditing
+        ? `/api/admin/songs/${editingSong!._id}`
         : "/api/admin/songs";
-      const method = editingSong ? "PUT" : "POST";
+      const method = isEditing ? "PUT" : "POST";
+
+      let audioUrl = formData.audioUrl;
+      let coverUrl = formData.coverUrl;
+      let durationValue = formData.duration
+        ? parseInt(formData.duration, 10)
+        : Number.NaN;
+
+      if (!isEditing) {
+        if (!audioFile || !imageFile) {
+          throw new Error("Please select both an audio file and a cover image.");
+        }
+
+        const uploadFormData = new FormData();
+        uploadFormData.append("audio", audioFile);
+        uploadFormData.append("image", imageFile);
+
+        const uploadRes = await fetch("/api/upload", {
+          method: "POST",
+          body: uploadFormData,
+        });
+
+        if (!uploadRes.ok) {
+          throw new Error("Failed to upload files.");
+        }
+
+        const uploadJson = await uploadRes.json();
+
+        audioUrl = uploadJson?.data?.audioUrl;
+        coverUrl = uploadJson?.data?.coverUrl;
+        const detected = uploadJson?.data?.duration;
+
+        if (!audioUrl || !coverUrl) {
+          throw new Error("Upload did not return file locations.");
+        }
+
+        if (!detected || Number.isNaN(detected)) {
+          throw new Error(
+            "Could not determine audio duration. Please try a different file."
+          );
+        }
+
+        durationValue = detected;
+        setDetectedDuration(detected);
+        setFormData((prev) => ({
+          ...prev,
+          duration: detected.toString(),
+          audioUrl,
+          coverUrl,
+        }));
+      } else {
+        if (audioFile || imageFile) {
+          const uploadFormData = new FormData();
+          if (audioFile) {
+            uploadFormData.append("audio", audioFile);
+          }
+          if (imageFile) {
+            uploadFormData.append("image", imageFile);
+          }
+
+          const uploadRes = await fetch("/api/upload", {
+            method: "POST",
+            body: uploadFormData,
+          });
+
+          if (!uploadRes.ok) {
+            throw new Error("Failed to upload files.");
+          }
+
+          const uploadJson = await uploadRes.json();
+
+          if (audioFile) {
+            audioUrl = uploadJson?.data?.audioUrl;
+            const detected = uploadJson?.data?.duration;
+            if (detected && !Number.isNaN(detected)) {
+              durationValue = detected;
+              setDetectedDuration(detected);
+              setFormData((prev) => ({
+                ...prev,
+                audioUrl: audioUrl || prev.audioUrl,
+                duration: detected.toString(),
+              }));
+            } else {
+              setFormData((prev) => ({
+                ...prev,
+                audioUrl: audioUrl || prev.audioUrl,
+              }));
+            }
+            if (!audioUrl) {
+              throw new Error("Upload did not return a new audio file location.");
+            }
+          }
+
+          if (imageFile) {
+            coverUrl = uploadJson?.data?.coverUrl;
+            if (!coverUrl) {
+              throw new Error("Upload did not return a new cover image location.");
+            }
+            setFormData((prev) => ({
+              ...prev,
+              coverUrl,
+            }));
+          }
+        }
+
+        if (!audioUrl || !coverUrl) {
+          throw new Error("Audio and cover image are required.");
+        }
+
+        if (!durationValue || Number.isNaN(durationValue)) {
+          throw new Error("Duration must be a valid number.");
+        }
+      }
+
+      const payload = {
+        title: formData.title,
+        artist: formData.artist,
+        category: formData.category,
+        duration: durationValue,
+        audioUrl,
+        coverUrl,
+      };
 
       const res = await fetch(url, {
         method,
         headers,
-        body: JSON.stringify({
-          ...formData,
-          duration: parseInt(formData.duration),
-        }),
+        body: JSON.stringify(payload),
       });
 
       const data = await res.json();
-      if (data.success) {
-        setShowModal(false);
-        setEditingSong(null);
-        setFormData({
-          title: "",
-          artist: "",
-          duration: "",
-          audioUrl: "",
-          coverUrl: "",
-          category: "",
-        });
-        fetchSongs();
-      } else {
-        alert(data.error);
+      if (!data.success) {
+        throw new Error(data.error || "Failed to save song.");
       }
-    } catch (error) {
+
+      setShowModal(false);
+      setEditingSong(null);
+      setFormData({
+        title: "",
+        artist: "",
+        duration: "",
+        audioUrl: "",
+        coverUrl: "",
+        category: "",
+      });
+      setAudioFile(null);
+      setImageFile(null);
+      setDetectedDuration(null);
+      fetchSongs();
+    } catch (error: any) {
       console.error("Error saving song:", error);
+      setModalError(error.message || "Failed to save song.");
+    } finally {
+      setSaving(false);
     }
   };
 
@@ -152,6 +290,10 @@ export default function AdminSongsPage() {
               coverUrl: "",
               category: "",
             });
+            setModalError("");
+            setAudioFile(null);
+            setImageFile(null);
+            setDetectedDuration(null);
             setShowModal(true);
           }}
           className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition"
@@ -238,7 +380,13 @@ export default function AdminSongsPage() {
               {editingSong ? "Edit Song" : "Add Song"}
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
+              {modalError && (
+                <div className="bg-red-500/20 border border-red-500 text-red-300 px-4 py-2 rounded">
+                  {modalError}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Title
@@ -268,7 +416,23 @@ export default function AdminSongsPage() {
                   />
                 </div>
               </div>
-              <div className="grid grid-cols-2 gap-4">
+
+              <div>
+                <label className="block text-sm font-medium text-gray-300 mb-2">
+                  Category
+                </label>
+                <input
+                  type="text"
+                  value={formData.category}
+                  onChange={(e) =>
+                    setFormData({ ...formData, category: e.target.value })
+                  }
+                  required
+                  className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
+                />
+              </div>
+
+              {isEditing ? (
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
                     Duration (seconds)
@@ -283,62 +447,132 @@ export default function AdminSongsPage() {
                     min="0"
                     className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
                   />
+                  {detectedDuration && (
+                    <p className="text-xs text-gray-400 mt-1">
+                      Latest detected duration: {formatDuration(detectedDuration)}
+                    </p>
+                  )}
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-300 mb-2">
-                    Category
-                  </label>
-                  <input
-                    type="text"
-                    value={formData.category}
-                    onChange={(e) =>
-                      setFormData({ ...formData, category: e.target.value })
-                    }
-                    required
-                    className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
-                  />
+              ) : (
+                <div className="text-sm text-gray-400">
+                  {detectedDuration
+                    ? `Detected duration: ${formatDuration(detectedDuration)}`
+                    : "Duration will be detected automatically after uploading your audio."}
                 </div>
-              </div>
+              )}
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Audio URL
+                  Audio File{" "}
+                  {isEditing
+                    ? "(optional – upload to replace)"
+                    : "(required)"}
                 </label>
                 <input
-                  type="url"
-                  value={formData.audioUrl}
+                  type="file"
+                  accept="audio/*"
                   onChange={(e) =>
-                    setFormData({ ...formData, audioUrl: e.target.value })
+                    setAudioFile(e.target.files?.[0] || null)
                   }
-                  required
+                  required={!isEditing}
                   className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
                 />
+                {isEditing && formData.audioUrl && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Current audio:{" "}
+                    <a
+                      href={formData.audioUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-green-400 underline"
+                    >
+                      View
+                    </a>
+                  </p>
+                )}
               </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Cover Image URL
+                  Cover Image{" "}
+                  {isEditing
+                    ? "(optional – upload to replace)"
+                    : "(required)"}
                 </label>
                 <input
-                  type="url"
-                  value={formData.coverUrl}
+                  type="file"
+                  accept="image/*"
                   onChange={(e) =>
-                    setFormData({ ...formData, coverUrl: e.target.value })
+                    setImageFile(e.target.files?.[0] || null)
                   }
-                  required
+                  required={!isEditing}
                   className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
                 />
+                {isEditing && formData.coverUrl && (
+                  <p className="text-xs text-gray-400 mt-1">
+                    Current cover:{" "}
+                    <a
+                      href={formData.coverUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-green-400 underline"
+                    >
+                      View
+                    </a>
+                  </p>
+                )}
               </div>
+
+              {isEditing && (
+                <>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Audio URL
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.audioUrl}
+                      onChange={(e) =>
+                        setFormData({ ...formData, audioUrl: e.target.value })
+                      }
+                      required
+                      className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-300 mb-2">
+                      Cover Image URL
+                    </label>
+                    <input
+                      type="url"
+                      value={formData.coverUrl}
+                      onChange={(e) =>
+                        setFormData({ ...formData, coverUrl: e.target.value })
+                      }
+                      required
+                      className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
+                    />
+                  </div>
+                </>
+              )}
+
               <div className="flex space-x-4">
                 <button
                   type="submit"
-                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition"
+                  disabled={saving}
+                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
                 >
-                  {editingSong ? "Update" : "Create"}
+                  {saving ? "Saving..." : isEditing ? "Update" : "Create"}
                 </button>
                 <button
                   type="button"
                   onClick={() => {
                     setShowModal(false);
                     setEditingSong(null);
+                    setAudioFile(null);
+                    setImageFile(null);
+                    setModalError("");
+                    setDetectedDuration(null);
                   }}
                   className="flex-1 px-4 py-2 bg-gray-600 hover:bg-gray-700 text-white rounded-lg font-medium transition"
                 >

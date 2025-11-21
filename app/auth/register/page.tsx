@@ -17,6 +17,7 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,19 +89,51 @@ export default function RegisterPage() {
             />
           </div>
 
-          <div>
+          <div className="relative">
             <label htmlFor="password" className="block text-sm font-medium mb-2">
               Password
             </label>
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               id="password"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
               minLength={6}
-              className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-green-500 focus:outline-none"
+              className="w-full px-4 py-2 pr-12 bg-gray-800 text-white rounded border border-gray-700 focus:border-green-500 focus:outline-none"
             />
+            <button
+              type="button"
+              onClick={() => setShowPassword((prev) => !prev)}
+              className="absolute bottom-2.5 right-3 text-gray-400 hover:text-white transition"
+              aria-label={showPassword ? 'Hide password' : 'Show password'}
+            >
+              {showPassword ? (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M13.875 18.825A10.05 10.05 0 0112 19.5c-5.243 0-9.735-3.523-11.25-8.25a11.766 11.766 0 012.82-4.918m3.32-2.606A11.992 11.992 0 0112 2.25c5.243 0 9.735 3.523 11.25 8.25a11.966 11.966 0 01-4.816 6.306M3 3l18 18"
+                  />
+                </svg>
+              ) : (
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M2.25 12C3.765 7.273 8.257 3.75 13.5 3.75c5.243 0 9.735 3.523 11.25 8.25-1.515 4.727-6.007 8.25-11.25 8.25-5.243 0-9.735-3.523-11.25-8.25z"
+                  />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={1.5}
+                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                  />
+                </svg>
+              )}
+            </button>
           </div>
 
           <button

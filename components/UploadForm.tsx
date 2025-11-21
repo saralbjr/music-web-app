@@ -16,7 +16,6 @@ export default function UploadForm() {
     title: '',
     artist: '',
     category: '',
-    duration: '',
   });
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -55,13 +54,17 @@ export default function UploadForm() {
       }
 
       const uploadData = await uploadResponse.json();
+      const detectedDuration = uploadData?.data?.duration;
+      if (!detectedDuration || detectedDuration <= 0) {
+        throw new Error('Could not determine audio duration. Please try a different file.');
+      }
 
       // Create song
       const songData = {
         title: formData.title,
         artist: formData.artist,
         category: formData.category,
-        duration: parseInt(formData.duration) || 0,
+        duration: detectedDuration,
         audioUrl: uploadData.data.audioUrl,
         coverUrl: uploadData.data.coverUrl,
       };
@@ -79,7 +82,7 @@ export default function UploadForm() {
       }
 
       setSuccess(true);
-      setFormData({ title: '', artist: '', category: '', duration: '' });
+      setFormData({ title: '', artist: '', category: '' });
       setAudioFile(null);
       setImageFile(null);
 
@@ -159,30 +162,14 @@ export default function UploadForm() {
       </div>
 
       <div>
-        <label htmlFor="duration" className="block text-sm font-medium mb-2">
-          Duration (seconds) *
-        </label>
-        <input
-          type="number"
-          id="duration"
-          name="duration"
-          value={formData.duration}
-          onChange={handleInputChange}
-          required
-          min="0"
-          className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-green-500 focus:outline-none"
-        />
-      </div>
-
-      <div>
         <label htmlFor="audio" className="block text-sm font-medium mb-2">
-          Audio File (MP3) *
+          Audio File *
         </label>
         <input
           type="file"
           id="audio"
           name="audio"
-          accept="audio/mpeg,audio/mp3"
+          accept="audio/*"
           onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
           required
           className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-green-500 focus:outline-none"
