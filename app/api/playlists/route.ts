@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { name, userId, songs = [] } = body;
+    const { name, userId, songs = [], coverUrl } = body;
 
     // Validate required fields
     if (!name || !userId) {
@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
       name,
       userId,
       songs,
+      coverUrl,
     });
 
     const populatedPlaylist = await Playlist.findById(playlist._id).populate('songs');
@@ -122,7 +123,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { playlistId, songs, name } = body;
+    const { playlistId, songs, name, coverUrl } = body;
 
     if (!playlistId) {
       return NextResponse.json(
@@ -141,6 +142,9 @@ export async function PUT(request: NextRequest) {
     }
     if (name !== undefined) {
       updateData.name = name;
+    }
+    if (coverUrl !== undefined) {
+      updateData.coverUrl = coverUrl;
     }
 
     await connectDB();
@@ -166,6 +170,59 @@ export async function PUT(request: NextRequest) {
   } catch (error: any) {
     return NextResponse.json(
       { success: false, error: error.message || 'Failed to update playlist' },
+      { status: 500 }
+    );
+  }
+}
+
+/**
+ * DELETE /api/playlists
+ * Remove an existing playlist
+ */
+export async function DELETE(request: NextRequest) {
+  try {
+    const { user, error } = await authenticateUser(request);
+    if (error || !user) {
+      return NextResponse.json(
+        { success: false, error: error || 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    const body = await request.json();
+    const { playlistId } = body;
+
+    if (!playlistId) {
+      return NextResponse.json(
+        { success: false, error: 'Playlist ID is required' },
+        { status: 400 }
+      );
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(playlistId)) {
+      return NextResponse.json({ success: false, error: 'Invalid playlist ID' }, { status: 400 });
+    }
+
+    await connectDB();
+
+    const playlist = await Playlist.findById(playlistId);
+    if (!playlist) {
+      return NextResponse.json({ success: false, error: 'Playlist not found' }, { status: 404 });
+    }
+
+    if (playlist.userId.toString() !== user.id) {
+      return NextResponse.json(
+        { success: false, error: 'You do not have permission to delete this playlist' },
+        { status: 403 }
+      );
+    }
+
+    await playlist.deleteOne();
+
+    return NextResponse.json({ success: true }, { status: 200 });
+  } catch (error: any) {
+    return NextResponse.json(
+      { success: false, error: error.message || 'Failed to delete playlist' },
       { status: 500 }
     );
   }

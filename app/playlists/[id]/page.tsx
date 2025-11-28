@@ -1,15 +1,16 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { ISong } from "@/models/Song";
 import { useAudioStore } from "@/lib/store/audioStore";
 import { fisherYatesShuffle } from "@/lib/algorithms/shuffle";
 
-interface Playlist {
+interface PlaylistWithSongs {
   _id: string;
   name: string;
   songs: ISong[];
+  coverUrl?: string;
 }
 
 /**
@@ -20,48 +21,76 @@ export default function PlaylistPage() {
   const params = useParams();
   const router = useRouter();
   const { setCurrentSong, currentSong, isPlaying } = useAudioStore();
-  const [playlist, setPlaylist] = useState<Playlist | null>(null);
+  const [playlist, setPlaylist] = useState<PlaylistWithSongs | null>(null);
   const [loading, setLoading] = useState(true);
-  const [headerHeight, setHeaderHeight] = useState(0);
+  const [ownerName, setOwnerName] = useState<string>("You");
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [manageModal, setManageModal] = useState<
+    "rename" | "delete" | "addSongs" | null
+  >(null);
+  const [formName, setFormName] = useState("");
+  const [feedback, setFeedback] = useState<string | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [catalogSongs, setCatalogSongs] = useState<ISong[]>([]);
+  const [catalogLoading, setCatalogLoading] = useState(false);
+  const [songSearch, setSongSearch] = useState("");
+  const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
+  const [formCover, setFormCover] = useState("");
 
   useEffect(() => {
     fetchPlaylist();
   }, [params.id]);
 
-  useEffect(() => {
-    const header = document.getElementById("playlist-header");
-    if (header) {
-      setHeaderHeight(header.offsetHeight);
+  const ensureSongId = (value: unknown): string => {
+    if (!value) return "";
+    if (typeof value === "string") return value;
+    if (typeof value === "number") return String(value);
+    if (typeof value === "object" && "toString" in value) {
+      return String(value as { toString(): string });
     }
-  }, [playlist]);
+    return "";
+  };
+
+  const notifyPlaylistUpdate = () => {
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new Event("playlist-update"));
+    }
+  };
+
+  const getAuth = () => {
+    const storedUser = localStorage.getItem("user");
+    const token = localStorage.getItem("token");
+    if (!storedUser || !token) {
+      router.replace("/auth/login");
+      return null;
+    }
+    const parsedUser = JSON.parse(storedUser);
+    if (!parsedUser.id) {
+      router.replace("/auth/login");
+      return null;
+    }
+    return { user: parsedUser, token };
+  };
 
   const fetchPlaylist = async () => {
     try {
-      const storedUser = localStorage.getItem("user");
-      const token = localStorage.getItem("token");
-      if (!storedUser || !token) {
-        router.replace("/auth/login");
+      const auth = getAuth();
+      if (!auth) {
         setLoading(false);
         return;
       }
+      setOwnerName(auth.user.name || "You");
 
-      const user = JSON.parse(storedUser);
-      if (!user.id) {
-        router.replace("/auth/login");
-        setLoading(false);
-        return;
-      }
-
-      const response = await fetch(`/api/playlists?userId=${user.id}`, {
+      const response = await fetch(`/api/playlists?userId=${auth.user.id}`, {
         headers: {
-          Authorization: `Bearer ${token}`,
+          Authorization: `Bearer ${auth.token}`,
         },
       });
       const data = await response.json();
 
       if (data.success) {
         const foundPlaylist = data.data.find(
-          (p: Playlist) => p._id === params.id
+          (p: PlaylistWithSongs) => p._id === params.id
         );
         if (foundPlaylist) {
           setPlaylist(foundPlaylist);
@@ -99,6 +128,212 @@ export default function PlaylistPage() {
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
+  const totalRuntime = useMemo(() => {
+    if (!playlist) return 0;
+    return playlist.songs.reduce((acc, song) => acc + (song.duration || 0), 0);
+  }, [playlist]);
+
+  const playlistSongIds = useMemo(() => {
+    if (!playlist) return [];
+    return playlist.songs.map((song) => ensureSongId(song._id));
+  }, [playlist]);
+
+  const playlistSongIdSet = useMemo(() => {
+    return new Set(playlistSongIds);
+  }, [playlistSongIds]);
+
+  const filteredCatalog = useMemo(() => {
+    const query = songSearch.trim().toLowerCase();
+    if (!query) {
+      return catalogSongs;
+    }
+    return catalogSongs.filter((song) => {
+      const titleMatch = song.title?.toLowerCase().includes(query);
+      const artistMatch = song.artist?.toLowerCase().includes(query);
+      return titleMatch || artistMatch;
+    });
+  }, [catalogSongs, songSearch]);
+
+  const formatTotalRuntime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    if (hours > 0) {
+      return `${hours} hr ${minutes} min`;
+    }
+    return `${minutes} min`;
+  };
+
+  const currentSongId = currentSong ? ensureSongId(currentSong._id) : null;
+
+  const openRenameModal = () => {
+    if (!playlist) return;
+    setFormName(playlist.name);
+    setFormCover(playlist.coverUrl || "");
+    setFeedback(null);
+    setManageModal("rename");
+  };
+
+  const openAddSongsModal = () => {
+    setSelectedSongIds([]);
+    setSongSearch("");
+    setFeedback(null);
+    setManageModal("addSongs");
+    if (catalogSongs.length === 0) {
+      fetchCatalogSongs();
+    }
+  };
+
+  const closeModal = () => {
+    setManageModal(null);
+    setActionLoading(false);
+    setFeedback(null);
+    setSelectedSongIds([]);
+    setFormCover("");
+  };
+
+  const fetchCatalogSongs = async () => {
+    try {
+      setCatalogLoading(true);
+      const response = await fetch("/api/songs?limit=300");
+      const data = await response.json();
+      if (data.success && Array.isArray(data.data)) {
+        setCatalogSongs(data.data);
+      }
+    } catch (error) {
+      console.error("Error fetching songs catalog:", error);
+    } finally {
+      setCatalogLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (manageModal === "addSongs" && catalogSongs.length === 0) {
+      fetchCatalogSongs();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [manageModal]);
+
+  const toggleSongSelection = (songId: string) => {
+    setSelectedSongIds((prev) =>
+      prev.includes(songId)
+        ? prev.filter((id) => id !== songId)
+        : [...prev, songId]
+    );
+  };
+
+  const handleRenameSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    if (!playlist) return;
+    const trimmed = formName.trim();
+    if (!trimmed) {
+      setFeedback("Playlist name cannot be empty.");
+      return;
+    }
+    const auth = getAuth();
+    if (!auth) return;
+
+    try {
+      setActionLoading(true);
+      const response = await fetch("/api/playlists", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
+          playlistId: playlist._id,
+          name: trimmed,
+          coverUrl: formCover.trim(),
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setPlaylist(data.data);
+        closeModal();
+        notifyPlaylistUpdate();
+      } else {
+        setFeedback(data.error || "Failed to update playlist");
+      }
+    } catch (error) {
+      console.error("Error updating playlist:", error);
+      setFeedback("Something went wrong. Please try again.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleDeletePlaylist = async () => {
+    if (!playlist) return;
+    const auth = getAuth();
+    if (!auth) return;
+    try {
+      setActionLoading(true);
+      const response = await fetch("/api/playlists", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
+          playlistId: playlist._id,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        notifyPlaylistUpdate();
+        router.push("/playlists");
+      } else {
+        setFeedback(data.error || "Failed to delete playlist");
+      }
+    } catch (error) {
+      console.error("Error deleting playlist:", error);
+      setFeedback("Something went wrong. Please try again.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
+  const handleAddSongsSubmit = async () => {
+    if (!playlist || selectedSongIds.length === 0) {
+      setManageModal(null);
+      return;
+    }
+    const auth = getAuth();
+    if (!auth) return;
+    const mergedIds = Array.from(
+      new Set([...playlistSongIds, ...selectedSongIds])
+    ).filter(Boolean);
+
+    try {
+      setActionLoading(true);
+      const response = await fetch("/api/playlists", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
+          playlistId: playlist._id,
+          songs: mergedIds,
+        }),
+      });
+      const data = await response.json();
+      if (data.success) {
+        setPlaylist(data.data);
+        closeModal();
+        notifyPlaylistUpdate();
+      } else {
+        setFeedback(data.error || "Failed to add songs");
+      }
+    } catch (error) {
+      console.error("Error adding songs:", error);
+      setFeedback("Something went wrong. Please try again.");
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="p-8">
@@ -124,25 +359,33 @@ export default function PlaylistPage() {
     );
   }
 
-  const coverImage =
+  const fallbackCover =
     playlist.songs && playlist.songs.length > 0
       ? playlist.songs[0]?.coverUrl
       : null;
-  const gradientColor = coverImage ? "from-blue-500" : "from-[#535353]";
+  const coverImage = playlist.coverUrl || fallbackCover;
+  const headerStyle = coverImage
+    ? {
+        backgroundImage: `linear-gradient(180deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.85) 60%, #121212 100%), url(${coverImage})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+      }
+    : {};
 
   return (
     <div className="relative">
       {/* Header with Blurred Background */}
       <div
         id="playlist-header"
-        className={`relative bg-gradient-to-b ${gradientColor} to-[#121212] pt-16 pb-8 px-8`}
+        className="relative pt-16 pb-10 px-8"
+        style={headerStyle}
       >
-        <div className="flex items-end gap-6">
+        <div className="flex flex-wrap items-end gap-6">
           {coverImage ? (
             <img
               src={coverImage}
               alt={playlist.name}
-              className="w-56 h-56 rounded-lg shadow-2xl object-cover"
+              className="w-56 h-56 rounded-lg shadow-2xl object-cover border border-white/20"
             />
           ) : (
             <div className="w-56 h-56 bg-[#282828] rounded-lg shadow-2xl flex items-center justify-center">
@@ -157,21 +400,27 @@ export default function PlaylistPage() {
           )}
 
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold mb-2">Playlist</p>
-            <h1 className="text-5xl md:text-7xl font-bold mb-4 truncate">
+            <p className="text-sm font-semibold uppercase tracking-[0.3em] mb-2">
+              Playlist
+            </p>
+            <h1 className="text-5xl md:text-7xl font-black mb-4 truncate">
               {playlist.name}
             </h1>
-            <p className="text-sm text-gray-300">
-              {playlist.songs.length} songs
+            <p className="text-sm text-gray-200 flex flex-wrap gap-2 items-center">
+              <span className="font-semibold">{ownerName}</span>
+              <span>•</span>
+              <span>{playlist.songs.length} songs</span>
+              <span>•</span>
+              <span>{formatTotalRuntime(totalRuntime)}</span>
             </p>
           </div>
         </div>
 
-        {/* Play Button */}
-        <div className="mt-6 flex items-center gap-4">
+        {/* Controls */}
+        <div className="mt-8 flex flex-wrap items-center gap-4">
           <button
             onClick={handlePlayAll}
-            className="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-lg hover:shadow-xl"
+            className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-lg hover:shadow-xl"
             aria-label="Play"
           >
             <svg
@@ -188,18 +437,74 @@ export default function PlaylistPage() {
           </button>
           <button
             onClick={handleShuffle}
-            className="text-gray-400 hover:text-white transition-colors"
+            className="text-white/70 hover:text-white transition-colors flex items-center gap-2"
             aria-label="Shuffle"
           >
             <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M5 4a1 1 0 00-2 0v7.268a2 2 0 000 3.464V16a1 1 0 102 0v-1.268a2 2 0 000-3.464V4zM11 4a1 1 0 10-2 0v1.268a2 2 0 000 3.464V16a1 1 0 102 0V8.732a2 2 0 000-3.464V4zM16 3a1 1 0 011 1v7.268a2 2 0 010 3.464V16a1 1 0 11-2 0v-1.268a2 2 0 010-3.464V4a1 1 0 011-1z" />
+              <path
+                fillRule="evenodd"
+                d="M4 4a1 1 0 112 0v1.586l7 7L14.414 12H13a1 1 0 110-2h4a1 1 0 011 1v4a1 1 0 11-2 0v-1.586l-7-7L7.586 8H9a1 1 0 110 2H5a1 1 0 01-1-1V4z"
+                clipRule="evenodd"
+              />
+            </svg>
+            <span className="text-sm font-semibold uppercase tracking-wide">
+              Shuffle
+            </span>
+          </button>
+          <button
+            type="button"
+            onClick={openAddSongsModal}
+            className="px-4 py-2 rounded-full border border-white/30 text-sm text-white/80 hover:text-white"
+          >
+            Add songs
+          </button>
+          <button
+            type="button"
+            onClick={openRenameModal}
+            className="px-4 py-2 rounded-full border border-white/30 text-sm text-white/80 hover:text-white"
+          >
+            Edit details
+          </button>
+          <button
+            type="button"
+            onClick={() => setIsFollowing((prev) => !prev)}
+            className="text-sm font-semibold text-white/70 hover:text-white"
+          >
+            {isFollowing ? "Following" : "Follow"}
+          </button>
+          <span className="text-white/50 text-sm">•</span>
+          <button
+            type="button"
+            onClick={() => {
+              setManageModal("delete");
+              setFeedback(null);
+            }}
+            className="text-white/70 hover:text-white"
+          >
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M6.5 6a.5.5 0 00-.5.5V8h8V6.5a.5.5 0 00-.5-.5h-7z" />
+              <path
+                fillRule="evenodd"
+                d="M4 7h12l-.867 9.033A2 2 0 0113.14 18H6.86a2 2 0 01-1.993-1.967L4 7zm3 2a1 1 0 012 0v6a1 1 0 11-2 0V9zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V9a1 1 0 00-1-1z"
+                clipRule="evenodd"
+              />
+              <path d="M7 4a2 2 0 012-2h2a2 2 0 012 2v1H7V4z" />
+            </svg>
+          </button>
+          <button
+            type="button"
+            className="text-white/70 hover:text-white"
+            aria-label="More"
+          >
+            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+              <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm2 2a2 2 0 100-4 2 2 0 000 4z" />
             </svg>
           </button>
         </div>
       </div>
 
       {/* Songs Table */}
-      <div className="px-8 py-4 bg-[#121212] bg-opacity-40">
+      <div className="px-0 pb-16">
         {playlist.songs.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-400">This playlist is empty.</p>
@@ -207,13 +512,17 @@ export default function PlaylistPage() {
         ) : (
           <div className="space-y-1">
             {/* Table Header */}
-            <div className="grid grid-cols-[16px_1fr_1fr_auto] md:grid-cols-[16px_1fr_1fr_1fr_auto] gap-4 px-4 py-2 text-xs text-gray-400 border-b border-[#282828]">
+            <div className="sticky top-16 z-10 grid grid-cols-[16px_1fr_1fr_auto] md:grid-cols-[40px_minmax(0,3fr)_minmax(0,2fr)_minmax(0,2fr)_auto] gap-4 px-8 py-3 text-xs text-gray-400 border-b border-[#282828] bg-[#121212]/95 backdrop-blur">
               <div>#</div>
               <div>TITLE</div>
               <div className="hidden md:block">ALBUM</div>
               <div className="hidden md:block">DATE ADDED</div>
               <div className="text-right">
-                <svg className="w-4 h-4 inline" fill="currentColor" viewBox="0 0 20 20">
+                <svg
+                  className="w-4 h-4 inline"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
                   <path d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" />
                 </svg>
               </div>
@@ -221,14 +530,15 @@ export default function PlaylistPage() {
 
             {/* Songs List */}
             {playlist.songs.map((song, index) => {
+              const songId = ensureSongId(song._id);
               const isPlayingSong =
-                currentSong?._id.toString() === song._id.toString() && isPlaying;
+                currentSongId !== null && currentSongId === songId && isPlaying;
 
               return (
                 <div
-                  key={song._id.toString()}
+                  key={songId}
                   onClick={() => handleSongClick(song)}
-                  className="grid grid-cols-[16px_1fr_1fr_auto] md:grid-cols-[16px_1fr_1fr_1fr_auto] gap-4 px-4 py-2 rounded hover:bg-[#282828] group cursor-pointer"
+                  className="grid grid-cols-[16px_1fr_1fr_auto] md:grid-cols-[40px_minmax(0,3fr)_minmax(0,2fr)_minmax(0,2fr)_auto] gap-4 px-8 py-3 rounded hover:bg-white/5 group cursor-pointer transition"
                 >
                   <div className="flex items-center text-gray-400 group-hover:text-white">
                     {isPlayingSong ? (
@@ -247,7 +557,7 @@ export default function PlaylistPage() {
                       <span className="group-hover:hidden">{index + 1}</span>
                     )}
                     <button
-                      className="hidden group-hover:block text-white"
+                      className="hidden group-hover:flex items-center justify-center text-white ml-2"
                       onClick={(e) => {
                         e.stopPropagation();
                         handleSongClick(song);
@@ -267,17 +577,21 @@ export default function PlaylistPage() {
                     </button>
                   </div>
                   <div className="flex items-center gap-3 min-w-0">
-                    {song.coverUrl && (
+                    {song.coverUrl ? (
                       <img
                         src={song.coverUrl}
                         alt={song.title}
-                        className="w-10 h-10 rounded object-cover hidden md:block"
+                        className="w-12 h-12 rounded object-cover hidden md:block"
                       />
+                    ) : (
+                      <div className="w-12 h-12 rounded bg-white/5 hidden md:flex items-center justify-center text-white/40 text-xs">
+                        No art
+                      </div>
                     )}
                     <div className="min-w-0 flex-1">
                       <div
-                        className={`text-sm font-medium truncate ${
-                          isPlayingSong ? "text-blue-500" : "text-white"
+                        className={`text-base font-medium truncate ${
+                          isPlayingSong ? "text-green-400" : "text-white"
                         }`}
                       >
                         {song.title}
@@ -293,7 +607,7 @@ export default function PlaylistPage() {
                   <div className="hidden md:flex items-center text-sm text-gray-400">
                     {new Date().toLocaleDateString()}
                   </div>
-                  <div className="flex items-center justify-end text-sm text-gray-400">
+                  <div className="flex items-center justify-end text-sm text-gray-400 tabular-nums">
                     {formatDuration(song.duration)}
                   </div>
                 </div>
@@ -302,6 +616,265 @@ export default function PlaylistPage() {
           </div>
         )}
       </div>
+
+      {/* Rename playlist modal */}
+      {manageModal === "rename" && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className="w-full max-w-md bg-[#181818] rounded-3xl p-6 border border-white/5 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-2xl font-bold">Edit playlist name</h3>
+              <button
+                onClick={closeModal}
+                className="text-white/60 hover:text-white"
+                aria-label="Close"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+            <form className="space-y-4" onSubmit={handleRenameSubmit}>
+              <label className="block">
+                <span className="text-sm text-white/60">Name</span>
+                <input
+                  type="text"
+                  value={formName}
+                  onChange={(e) => setFormName(e.target.value)}
+                  className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-white"
+                  maxLength={120}
+                  required
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm text-white/60">Cover image URL</span>
+                <input
+                  type="url"
+                  value={formCover}
+                  onChange={(e) => setFormCover(e.target.value)}
+                  className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-white"
+                  placeholder="https://..."
+                />
+                <p className="text-xs text-white/40 mt-1">
+                  Leave blank to pull artwork from the first song.
+                </p>
+              </label>
+              {feedback && <p className="text-sm text-red-400">{feedback}</p>}
+              <div className="flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={closeModal}
+                  className="px-4 py-2 rounded-full border border-white/20 text-sm text-white/80 hover:text-white"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={actionLoading}
+                  className="px-5 py-2 rounded-full bg-white text-black text-sm font-semibold disabled:opacity-60"
+                >
+                  {actionLoading ? "Saving..." : "Save"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete modal */}
+      {manageModal === "delete" && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className="w-full max-w-md bg-[#181818] rounded-3xl p-6 border border-white/5 shadow-2xl text-center space-y-4">
+            <h3 className="text-2xl font-bold">Delete playlist?</h3>
+            <p className="text-white/70">
+              This will permanently remove{" "}
+              <span className="font-semibold">{playlist?.name}</span>.
+            </p>
+            {feedback && <p className="text-sm text-red-400">{feedback}</p>}
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => {
+                  setManageModal(null);
+                  setFeedback(null);
+                }}
+                className="px-4 py-2 rounded-full border border-white/20 text-sm text-white/80 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeletePlaylist}
+                disabled={actionLoading}
+                className="px-6 py-2 rounded-full bg-red-500 text-black text-sm font-semibold disabled:opacity-60"
+              >
+                {actionLoading ? "Deleting..." : "Delete"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add songs modal */}
+      {manageModal === "addSongs" && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 px-4">
+          <div className="w-full max-w-2xl bg-[#181818] rounded-3xl p-6 border border-white/5 shadow-2xl">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="text-2xl font-bold">Add songs</h3>
+                <p className="text-white/60 text-sm">
+                  Choose tracks from your library to drop into this playlist.
+                </p>
+              </div>
+              <button
+                onClick={closeModal}
+                className="text-white/60 hover:text-white"
+                aria-label="Close"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div className="mb-4">
+              <input
+                type="search"
+                value={songSearch}
+                onChange={(e) => setSongSearch(e.target.value)}
+                placeholder="Search songs or artists"
+                className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-white text-sm"
+              />
+            </div>
+            <div className="max-h-80 overflow-y-auto space-y-2 pr-1">
+              {catalogLoading ? (
+                [...Array(6)].map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="h-16 rounded-2xl bg-white/5 animate-pulse"
+                  ></div>
+                ))
+              ) : filteredCatalog.length === 0 ? (
+                <p className="text-center text-white/60 py-12">
+                  No songs found. Try a different search.
+                </p>
+              ) : (
+                filteredCatalog.map((song) => {
+                  const songId = ensureSongId(song._id);
+                  const alreadyAdded = playlistSongIdSet.has(songId);
+                  const selected = selectedSongIds.includes(songId);
+
+                  return (
+                    <button
+                      key={songId}
+                      type="button"
+                      onClick={() => {
+                        if (!alreadyAdded) {
+                          toggleSongSelection(songId);
+                        }
+                      }}
+                      className={`w-full flex items-center gap-4 px-4 py-3 rounded-2xl border border-white/10 text-left transition ${
+                        alreadyAdded
+                          ? "opacity-60 cursor-not-allowed"
+                          : selected
+                          ? "bg-white/10 border-white/30"
+                          : "hover:bg-white/5"
+                      }`}
+                    >
+                      <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
+                        {song.coverUrl ? (
+                          <img
+                            src={song.coverUrl}
+                            alt={song.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-white/50 text-xs">
+                            No art
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold truncate">
+                          {song.title}
+                        </p>
+                        <p className="text-xs text-white/60 truncate">
+                          {song.artist}
+                        </p>
+                      </div>
+                      {alreadyAdded ? (
+                        <span className="text-xs uppercase tracking-wide text-white/50">
+                          In playlist
+                        </span>
+                      ) : (
+                        <div
+                          className={`w-5 h-5 rounded border ${
+                            selected
+                              ? "bg-green-400 border-green-400"
+                              : "border-white/30"
+                          }`}
+                        >
+                          {selected && (
+                            <svg
+                              className="w-full h-full text-black"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                            >
+                              <path
+                                fillRule="evenodd"
+                                d="M16.707 5.293a1 1 0 010 1.414l-8.25 8.25a1 1 0 01-1.414 0l-3-3a1 1 0 011.414-1.414L7.75 12.586l7.543-7.543a1 1 0 011.414 0z"
+                                clipRule="evenodd"
+                              />
+                            </svg>
+                          )}
+                        </div>
+                      )}
+                    </button>
+                  );
+                })
+              )}
+            </div>
+            {feedback && manageModal === "addSongs" && (
+              <p className="text-sm text-red-400 mt-4">{feedback}</p>
+            )}
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                type="button"
+                onClick={closeModal}
+                className="px-4 py-2 rounded-full border border-white/20 text-sm text-white/80 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleAddSongsSubmit}
+                disabled={selectedSongIds.length === 0 || actionLoading}
+                className="px-6 py-2 rounded-full bg-white text-black text-sm font-semibold disabled:opacity-60"
+              >
+                {actionLoading
+                  ? "Adding..."
+                  : selectedSongIds.length
+                  ? `Add ${selectedSongIds.length} song${
+                      selectedSongIds.length > 1 ? "s" : ""
+                    }`
+                  : "Select tracks"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

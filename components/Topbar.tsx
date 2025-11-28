@@ -125,10 +125,19 @@ export default function Topbar() {
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
               >
-                <div className="w-8 h-8 bg-blue-500 rounded-full flex items-center justify-center">
-                  <span className="text-white text-sm font-bold">
-                    {user.name?.charAt(0).toUpperCase() || "U"}
-                  </span>
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-blue-500 flex items-center justify-center">
+                  {user.image ? (
+                    <img
+                      src={user.image}
+                      alt={user.name}
+                      className="w-full h-full object-cover"
+                      referrerPolicy="no-referrer"
+                    />
+                  ) : (
+                    <span className="text-white text-sm font-bold">
+                      {user.name?.charAt(0).toUpperCase() || "U"}
+                    </span>
+                  )}
                 </div>
                 <span className="text-white text-sm font-semibold">
                   {user.name}
@@ -154,6 +163,13 @@ export default function Topbar() {
                   >
                     Profile
                   </Link>
+                  <Link
+                    href="/profile/settings"
+                    className="block px-4 py-2 text-sm text-white hover:bg-[#181818] transition-colors"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Account settings
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-[#181818] transition-colors"
@@ -176,5 +192,3 @@ export default function Topbar() {
     </div>
   );
 }
-
-

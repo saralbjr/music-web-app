@@ -1,19 +1,60 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import SongCard from "@/components/SongCard";
 import { ISong } from "@/models/Song";
 
 const categories = [
-  { name: "Pop", color: "bg-pink-500" },
-  { name: "Rock", color: "bg-red-500" },
-  { name: "Hip Hop", color: "bg-purple-500" },
-  { name: "Jazz", color: "bg-blue-500" },
-  { name: "Electronic", color: "bg-green-500" },
-  { name: "Classical", color: "bg-yellow-500" },
-  { name: "Country", color: "bg-orange-500" },
-  { name: "R&B", color: "bg-indigo-500" },
+  {
+    name: "Pop",
+    color: "bg-gradient-to-br from-pink-500 to-pink-700",
+    image:
+      "https://images.unsplash.com/photo-1470229538611-16ba8c7ffbd7?w=400&auto=format&fit=crop&q=60",
+  },
+  {
+    name: "Rock",
+    color: "bg-gradient-to-br from-red-500 to-red-700",
+    image:
+      "https://images.unsplash.com/photo-1519681393784-d120267933ba?w=400&auto=format&fit=crop&q=60",
+  },
+  {
+    name: "Hip Hop",
+    color: "bg-gradient-to-br from-purple-500 to-purple-700",
+    image:
+      "https://images.unsplash.com/photo-1493225457124-a3eb161ffa5f?w=400&auto=format&fit=crop&q=60",
+  },
+  {
+    name: "Jazz",
+    color: "bg-gradient-to-br from-blue-500 to-blue-700",
+    image:
+      "https://images.unsplash.com/photo-1485579149621-3123dd979885?w=400&auto=format&fit=crop&q=60",
+  },
+  {
+    name: "Electronic",
+    color: "bg-gradient-to-br from-green-500 to-green-700",
+    image:
+      "https://images.unsplash.com/photo-1506157786151-b8491531f063?w=400&auto=format&fit=crop&q=60",
+  },
+  {
+    name: "Classical",
+    color: "bg-gradient-to-br from-yellow-500 to-yellow-600",
+    image:
+      "https://images.unsplash.com/photo-1485579149621-3123dd979885?w=400&auto=format&fit=crop&q=60",
+  },
+  {
+    name: "Country",
+    color: "bg-gradient-to-br from-orange-500 to-orange-700",
+    image:
+      "https://images.unsplash.com/photo-1507878866276-a947ef722fee?w=400&auto=format&fit=crop&q=60",
+  },
+  {
+    name: "R&B",
+    color: "bg-gradient-to-br from-indigo-500 to-indigo-700",
+    image:
+      "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?w=400&auto=format&fit=crop&q=60",
+  },
 ];
 
 /**
@@ -89,11 +130,23 @@ export default function SearchPage() {
               <button
                 key={category.name}
                 onClick={() => handleCategoryClick(category.name)}
-                className={`${category.color} rounded-lg p-6 text-left hover:scale-105 transition-transform transform aspect-square flex items-end shadow-lg hover:shadow-xl`}
+                className={`${category.color} relative rounded-lg p-6 text-left overflow-hidden hover:scale-105 transition-transform transform aspect-square flex items-end shadow-lg hover:shadow-xl`}
               >
-                <span className="text-xl font-bold text-white">
+                <span className="text-xl font-bold text-white drop-shadow">
                   {category.name}
                 </span>
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="absolute -bottom-6 -right-4 rotate-12 w-28 h-28 opacity-80">
+                    <Image
+                      src={category.image}
+                      alt={`${category.name} album art`}
+                      width={160}
+                      height={160}
+                      className="w-full h-full object-cover rounded-lg shadow-2xl"
+                      priority={false}
+                    />
+                  </div>
+                </div>
               </button>
             ))}
           </div>
@@ -133,9 +186,10 @@ export default function SearchPage() {
             </div>
           ) : songs.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {songs.map((song) => (
-                <SongCard key={song._id.toString()} song={song} queue={songs} />
-              ))}
+              {songs.map((song) => {
+                const songId = String(song._id);
+                return <SongCard key={songId} song={song} queue={songs} />;
+              })}
             </div>
           ) : (
             <div className="text-center py-12">
@@ -151,5 +205,3 @@ export default function SearchPage() {
     </div>
   );
 }
-
-

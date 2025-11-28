@@ -9,6 +9,7 @@ export interface IPlaylist extends Document {
   name: string;
   userId: Types.ObjectId; // Reference to User
   songs: Types.ObjectId[]; // Array of Song references
+  coverUrl?: string;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -35,6 +36,10 @@ const PlaylistSchema: Schema = new Schema(
         ref: 'Song',
       },
     ],
+    coverUrl: {
+      type: String,
+      trim: true,
+    },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt

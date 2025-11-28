@@ -30,6 +30,8 @@ export default function Sidebar() {
           if (data.success) {
             setPlaylists(data.data || []);
           }
+        } else {
+          setPlaylists([]);
         }
       } catch (error) {
         console.error("Error fetching playlists:", error);
@@ -38,9 +40,11 @@ export default function Sidebar() {
 
     fetchPlaylists();
     window.addEventListener("auth-change", fetchPlaylists);
+    window.addEventListener("playlist-update", fetchPlaylists);
 
     return () => {
       window.removeEventListener("auth-change", fetchPlaylists);
+      window.removeEventListener("playlist-update", fetchPlaylists);
     };
   }, []);
 
@@ -68,7 +72,9 @@ export default function Sidebar() {
             </svg>
             <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full opacity-75 group-hover:opacity-100 transition-opacity"></div>
           </div>
-          <span className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">SoundWave</span>
+          <span className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">
+            SoundWave
+          </span>
         </Link>
       </div>
 
@@ -85,20 +91,12 @@ export default function Sidebar() {
             }`}
           >
             {item.icon === "Home" && (
-              <svg
-                className="w-6 h-6"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M10.707 2.293a1 1 0 00-1.414 0l-7 7a1 1 0 001.414 1.414L4 10.414V17a1 1 0 001 1h2a1 1 0 001-1v-2a1 1 0 011-1h2a1 1 0 011 1v2a1 1 0 001 1h2a1 1 0 001-1v-6.586l.293.293a1 1 0 001.414-1.414l-7-7z" />
               </svg>
             )}
             {item.icon === "Search" && (
-              <svg
-                className="w-6 h-6"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"
                   d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z"
@@ -107,11 +105,7 @@ export default function Sidebar() {
               </svg>
             )}
             {item.icon === "Library" && (
-              <svg
-                className="w-6 h-6"
-                fill="currentColor"
-                viewBox="0 0 20 20"
-              >
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
               </svg>
             )}
@@ -127,11 +121,7 @@ export default function Sidebar() {
               : "text-gray-400 hover:text-white hover:bg-[#181818]"
           }`}
         >
-          <svg
-            className="w-6 h-6"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
+          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
           <span className="font-semibold">Discover</span>
@@ -151,11 +141,7 @@ export default function Sidebar() {
           }}
           className="flex items-center gap-4 px-3 py-2 rounded-md text-gray-400 hover:text-white hover:bg-[#181818] transition-all w-full group"
         >
-          <svg
-            className="w-6 h-6"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
+          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
             <path
               fillRule="evenodd"
               d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z"
@@ -176,9 +162,9 @@ export default function Sidebar() {
             playlists.map((playlist) => (
               <Link
                 key={playlist._id}
-                href={`/playlist/${playlist._id}`}
+                href={`/playlists/${playlist._id}`}
                 className={`block px-3 py-2 rounded-md text-sm text-gray-400 hover:text-white hover:bg-[#181818] transition-all truncate ${
-                  pathname === `/playlist/${playlist._id}`
+                  pathname === `/playlists/${playlist._id}`
                     ? "text-white bg-[#282828]"
                     : ""
                 }`}
@@ -187,9 +173,7 @@ export default function Sidebar() {
               </Link>
             ))
           ) : (
-            <p className="px-3 py-2 text-sm text-gray-500">
-              No playlists yet
-            </p>
+            <p className="px-3 py-2 text-sm text-gray-500">No playlists yet</p>
           )}
         </div>
       </div>
