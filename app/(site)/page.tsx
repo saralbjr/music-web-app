@@ -23,7 +23,9 @@ export default function HomePage() {
   const fetchData = async () => {
     try {
       // Fetch local songs from database
-      const songsResponse = await fetch("/api/songs?sortBy=playCount&order=desc");
+      const songsResponse = await fetch(
+        "/api/songs?sortBy=playCount&order=desc"
+      );
       const songsData = await songsResponse.json();
       const allSongs: ISong[] = songsData.success ? songsData.data || [] : [];
 
@@ -59,9 +61,9 @@ export default function HomePage() {
   // Get greeting based on time
   const getGreeting = () => {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning";
-    if (hour < 18) return "Good afternoon";
-    return "Good evening";
+    if (hour < 12) return "Good Morning";
+    if (hour < 18) return "Good Afternoon";
+    return "Good Evening";
   };
 
   if (loading) {
@@ -87,42 +89,11 @@ export default function HomePage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {recentSongs.length > 0 ? (
             recentSongs.map((song) => (
-              <div
+              <SongCard
                 key={song._id.toString()}
-                className="group"
-              >
-                <div className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-all duration-200 cursor-pointer h-full">
-                  <div className="relative mb-4">
-                    {song.coverFile ? (
-                      <div className="aspect-square rounded-lg overflow-hidden shadow-lg">
-                        <img
-                          src={song.coverFile}
-                          alt={song.title}
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                    ) : (
-                      <div className="aspect-square bg-[#282828] rounded-lg flex items-center justify-center">
-                        <svg
-                          className="w-12 h-12 text-gray-500"
-                          fill="currentColor"
-                          viewBox="0 0 20 20"
-                        >
-                          <path
-                            fillRule="evenodd"
-                            d="M18 3a1 1 0 00-1.447-.894L8.763 6H5a3 3 0 000 6h.28l1.771 5.316A1 1 0 008 18h1a1 1 0 001-1v-4.382l6.553 3.276A1 1 0 0018 15V3z"
-                            clipRule="evenodd"
-                          />
-                        </svg>
-                      </div>
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-white truncate mb-1 group-hover:text-blue-400 transition-colors">
-                    {song.title}
-                  </h3>
-                  <p className="text-sm text-gray-400 truncate">{song.artist}</p>
-                </div>
-              </div>
+                song={song}
+                queue={recentSongs}
+              />
             ))
           ) : (
             <p className="text-gray-400 col-span-full">No songs available</p>

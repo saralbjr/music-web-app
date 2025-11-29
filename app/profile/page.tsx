@@ -148,12 +148,12 @@ export default function ProfilePage() {
                   Based on your recent listening habits
                 </p>
               </div>
-              <Link
+              {/* <Link
                 href="/discover"
                 className="text-sm text-white/70 hover:text-white"
               >
                 View more
-              </Link>
+              </Link> */}
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
               {[

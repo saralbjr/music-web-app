@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { mergeSort } from '@/lib/algorithms/mergeSort';
-import { kmpMatch } from '@/lib/algorithms/kmp';
+import { kmpMatch, calculateSearchScore } from '@/lib/algorithms/kmp';
 import connectDB from '@/lib/db';
 import Song from '@/models/Song';
 import { requireAdmin } from '@/lib/middleware/auth';
@@ -48,13 +48,21 @@ export async function GET(request: NextRequest) {
 
     // Apply KMP search if search query is provided
     if (search) {
-      songs = songs.filter(
-        (song) => kmpMatch(song.title, search) || kmpMatch(song.artist, search)
-      );
+      songs = songs
+        .filter(
+          (song) => kmpMatch(song.title, search) || kmpMatch(song.artist, search)
+        )
+        .map((song) => ({
+          ...song,
+          searchScore: calculateSearchScore(song, search),
+        }))
+        .sort((a, b) => (b.searchScore || 0) - (a.searchScore || 0));
     }
 
-    // Apply merge sort
-    const sortedSongs = mergeSort(songs, sortBy as keyof typeof songs[0], order);
+    // Apply merge sort (only if not searching, as search already sorts by relevance)
+    const sortedSongs = search
+      ? songs
+      : mergeSort(songs, sortBy as keyof typeof songs[0], order);
 
     // Apply pagination
     const offset = offsetParam ? parseInt(offsetParam, 10) : 0;

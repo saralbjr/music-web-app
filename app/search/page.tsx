@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import SongCard from "@/components/SongCard";
 import { ISong } from "@/models/Song";
 
@@ -63,10 +63,12 @@ const categories = [
  */
 export default function SearchPage() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const query = searchParams.get("q") || "";
   const [songs, setSongs] = useState<ISong[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const SHOW_INITIAL_RESULTS = 5;
 
   useEffect(() => {
     if (query) {
@@ -154,30 +156,39 @@ export default function SearchPage() {
       ) : (
         <>
           {/* Search Results */}
-          <div className="mb-6">
-            <h1 className="text-2xl font-bold mb-2">
-              {selectedCategory
-                ? `Search results for "${selectedCategory}"`
-                : query
-                ? `Search results for "${query}"`
-                : "Search"}
-            </h1>
-            {selectedCategory && (
-              <button
-                onClick={() => {
-                  setSelectedCategory(null);
-                  setSongs([]);
-                }}
-                className="text-sm text-gray-400 hover:text-white transition-colors"
-              >
-                Clear filter
-              </button>
-            )}
+          <div className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h1 className="text-3xl font-bold mb-2">
+                  {selectedCategory
+                    ? `Search results for "${selectedCategory}"`
+                    : query
+                    ? `Search results for "${query}"`
+                    : "Search"}
+                </h1>
+                {songs.length > 0 && (
+                  <p className="text-gray-400 text-sm">
+                    {songs.length} {songs.length === 1 ? "result" : "results"} found
+                  </p>
+                )}
+              </div>
+              {selectedCategory && (
+                <button
+                  onClick={() => {
+                    setSelectedCategory(null);
+                    setSongs([]);
+                  }}
+                  className="text-sm text-gray-400 hover:text-white transition-colors px-4 py-2 rounded-full border border-[#404040] hover:border-white"
+                >
+                  Clear filter
+                </button>
+              )}
+            </div>
           </div>
 
           {loading ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {[...Array(6)].map((_, i) => (
+              {[...Array(5)].map((_, i) => (
                 <div
                   key={i}
                   className="animate-pulse bg-[#181818] rounded-lg h-64"
@@ -185,26 +196,68 @@ export default function SearchPage() {
               ))}
             </div>
           ) : songs.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {songs.map((song) => {
-                const songId = String(song._id);
-                return (
-                  <SongCard
-                    key={songId}
-                    song={song}
-                    queue={songs}
-                    showLikeButton={true}
-                  />
-                );
-              })}
-            </div>
+            <>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 mb-6">
+                {songs.slice(0, SHOW_INITIAL_RESULTS).map((song) => {
+                  const songId = String(song._id);
+                  return (
+                    <SongCard
+                      key={songId}
+                      song={song}
+                      queue={songs}
+                      showLikeButton={true}
+                    />
+                  );
+                })}
+              </div>
+              {songs.length > SHOW_INITIAL_RESULTS && (
+                <div className="flex justify-center">
+                  <button
+                    onClick={() => {
+                      if (query) {
+                        router.push(`/search/results?q=${encodeURIComponent(query)}`);
+                      } else if (selectedCategory) {
+                        router.push(`/search/results?q=${encodeURIComponent(selectedCategory)}`);
+                      }
+                    }}
+                    className="px-8 py-3 bg-white text-black rounded-full font-semibold hover:scale-105 transition-transform shadow-lg hover:shadow-xl"
+                  >
+                    Show all {songs.length} results
+                  </button>
+                </div>
+              )}
+            </>
           ) : (
-            <div className="text-center py-12">
-              <p className="text-gray-400 text-lg">
+            <div className="text-center py-16">
+              <div className="mb-4">
+                <svg
+                  className="w-16 h-16 text-gray-600 mx-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <p className="text-gray-400 text-lg mb-2">
                 {query || selectedCategory
                   ? "No results found"
                   : "Start searching to see results"}
               </p>
+              {query || selectedCategory ? (
+                <p className="text-gray-500 text-sm">
+                  Try searching with different keywords
+                </p>
+              ) : (
+                <p className="text-gray-500 text-sm">
+                  Use the search bar above or browse by category
+                </p>
+              )}
             </div>
           )}
         </>

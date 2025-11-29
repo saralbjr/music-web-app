@@ -128,6 +128,12 @@ export default function AudioPlayer() {
       const data = await response.json();
       if (data.success) {
         setIsLiked(data.isLiked);
+        // Dispatch event to notify other components
+        window.dispatchEvent(
+          new CustomEvent(data.isLiked ? "song-liked" : "song-unliked", {
+            detail: { songId: currentSong._id.toString() },
+          })
+        );
       }
     } catch (error) {
       console.error("Error liking song:", error);

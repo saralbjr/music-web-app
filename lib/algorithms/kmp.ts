@@ -78,3 +78,69 @@ export function kmpMatch(text: string, pattern: string): boolean {
   return kmpSearch(text, pattern).length > 0;
 }
 
+/**
+ * Calculate search relevance score for a song
+ * Higher score = better match
+ * @param song - Song object with title and artist
+ * @param pattern - Search pattern
+ * @returns Relevance score (0-100)
+ */
+export function calculateSearchScore(
+  song: { title: string; artist: string },
+  pattern: string
+): number {
+  if (!pattern || pattern.length === 0) return 0;
+
+  const normalizedPattern = pattern.toLowerCase().trim();
+  const title = song.title.toLowerCase();
+  const artist = song.artist.toLowerCase();
+
+  let score = 0;
+
+  // Exact match in title (highest priority)
+  if (title === normalizedPattern) {
+    score += 100;
+  } else if (title.startsWith(normalizedPattern)) {
+    score += 80;
+  } else {
+    const titleMatches = kmpSearch(title, normalizedPattern);
+    if (titleMatches.length > 0) {
+      score += 60;
+      // Bonus for multiple matches
+      score += Math.min(titleMatches.length * 5, 20);
+    }
+  }
+
+  // Exact match in artist
+  if (artist === normalizedPattern) {
+    score += 50;
+  } else if (artist.startsWith(normalizedPattern)) {
+    score += 40;
+  } else {
+    const artistMatches = kmpSearch(artist, normalizedPattern);
+    if (artistMatches.length > 0) {
+      score += 30;
+      // Bonus for multiple matches
+      score += Math.min(artistMatches.length * 3, 15);
+    }
+  }
+
+  // Bonus for word boundary matches (starts of words)
+  const titleWords = title.split(/\s+/);
+  const artistWords = artist.split(/\s+/);
+
+  titleWords.forEach((word) => {
+    if (word.startsWith(normalizedPattern)) {
+      score += 10;
+    }
+  });
+
+  artistWords.forEach((word) => {
+    if (word.startsWith(normalizedPattern)) {
+      score += 5;
+    }
+  });
+
+  return Math.min(score, 100);
+}
+

@@ -226,8 +226,8 @@ export default function PlaylistsPage() {
               Craft the perfect vibe
             </h1>
             <p className="text-white/70 mt-3 max-w-xl">
-              Build and organize playlists like Spotify. Edit titles on the fly
-              and clean up old sessions when the mood shifts.
+              Build and organize playlists. Edit titles on the fly and clean up
+              old sessions when the mood shifts.
             </p>
           </div>
           <button

@@ -84,6 +84,12 @@ export default function SongCard({ song, queue, showLikeButton = false }: SongCa
       const data = await response.json();
       if (data.success) {
         setIsLiked(data.isLiked);
+        // Dispatch event to notify other components
+        window.dispatchEvent(
+          new CustomEvent(data.isLiked ? "song-liked" : "song-unliked", {
+            detail: { songId: song._id.toString() },
+          })
+        );
       }
     } catch (error) {
       console.error("Error liking song:", error);

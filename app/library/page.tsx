@@ -124,7 +124,7 @@ export default function LibraryPage() {
                 : "border-transparent text-gray-400 hover:text-white"
             }`}
           >
-            Liked Songs
+            Favorites
           </button>
         </div>
       </div>
