@@ -17,39 +17,11 @@ export default function AdminLoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
+  // Clear any existing admin session on login page load
   useEffect(() => {
-    // Check if admin is already logged in and verify with backend
-    const verifyAdmin = async () => {
-      const token = localStorage.getItem("adminToken");
-      const adminUser = localStorage.getItem("adminUser");
-      if (token && adminUser) {
-        const user = JSON.parse(adminUser);
-        if (user.role === "admin") {
-          // Verify with backend
-          try {
-            const response = await fetch("/api/admin/verify", {
-              headers: {
-                Authorization: `Bearer ${token}`,
-              },
-            });
-            const data = await response.json();
-            if (data.success && data.user?.role === "admin") {
-              router.push("/admin");
-            } else {
-              // Clear invalid admin session
-              localStorage.removeItem("adminToken");
-              localStorage.removeItem("adminUser");
-            }
-          } catch (error) {
-            // Clear invalid admin session on error
-            localStorage.removeItem("adminToken");
-            localStorage.removeItem("adminUser");
-          }
-        }
-      }
-    };
-    verifyAdmin();
-  }, [router]);
+    localStorage.removeItem("adminToken");
+    localStorage.removeItem("adminUser");
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

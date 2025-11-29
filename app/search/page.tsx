@@ -188,7 +188,14 @@ export default function SearchPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               {songs.map((song) => {
                 const songId = String(song._id);
-                return <SongCard key={songId} song={song} queue={songs} />;
+                return (
+                  <SongCard
+                    key={songId}
+                    song={song}
+                    queue={songs}
+                    showLikeButton={true}
+                  />
+                );
               })}
             </div>
           ) : (

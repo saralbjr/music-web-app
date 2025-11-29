@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useState, useEffect } from "react";
 
 /**
@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [playlists, setPlaylists] = useState<any[]>([]);
 
   useEffect(() => {
@@ -125,6 +126,25 @@ export default function Sidebar() {
             <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
           </svg>
           <span className="font-semibold">Discover</span>
+        </Link>
+        {/* Liked Songs Link */}
+        <Link
+          href="/library?tab=liked"
+          className={`flex items-center gap-4 px-3 py-2 rounded-md mb-1 transition-all group ${
+            pathname === "/library" && searchParams.get("tab") === "liked"
+              ? "bg-[#282828] text-white"
+              : "text-gray-400 hover:text-white hover:bg-[#181818]"
+          }`}
+        >
+          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 24 24">
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+            />
+          </svg>
+          <span className="font-semibold">Liked Songs</span>
         </Link>
       </nav>
 

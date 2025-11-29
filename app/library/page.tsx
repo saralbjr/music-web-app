@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import PlaylistCard from "@/components/PlaylistCard";
 import SongCard from "@/components/SongCard";
 import { ISong } from "@/models/Song";
@@ -12,10 +12,13 @@ import { ISong } from "@/models/Song";
  */
 export default function LibraryPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [playlists, setPlaylists] = useState<any[]>([]);
-  const [songs, setSongs] = useState<ISong[]>([]);
+  const [likedSongs, setLikedSongs] = useState<ISong[]>([]);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"playlists" | "songs">("playlists");
+  const [activeTab, setActiveTab] = useState<"playlists" | "liked">(
+    searchParams.get("tab") === "liked" ? "liked" : "playlists"
+  );
 
   useEffect(() => {
     const storedUser = localStorage.getItem("user");
@@ -36,6 +39,16 @@ export default function LibraryPage() {
     fetchData(user.id, token);
   }, [router]);
 
+  // Update active tab when URL parameter changes
+  useEffect(() => {
+    const tab = searchParams.get("tab");
+    if (tab === "liked") {
+      setActiveTab("liked");
+    } else {
+      setActiveTab("playlists");
+    }
+  }, [searchParams]);
+
   const fetchData = async (userId: string, token: string) => {
     try {
       const playlistsResponse = await fetch(`/api/playlists?userId=${userId}`, {
@@ -48,11 +61,15 @@ export default function LibraryPage() {
         setPlaylists(playlistsData.data || []);
       }
 
-      // Fetch all songs
-      const songsResponse = await fetch("/api/songs");
-      const songsData = await songsResponse.json();
-      if (songsData.success) {
-        setSongs(songsData.data || []);
+      // Fetch liked songs
+      const likedSongsResponse = await fetch("/api/songs/like", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const likedSongsData = await likedSongsResponse.json();
+      if (likedSongsData.success) {
+        setLikedSongs(likedSongsData.data || []);
       }
     } catch (error) {
       console.error("Error fetching library:", error);
@@ -84,7 +101,10 @@ export default function LibraryPage() {
         {/* Tabs */}
         <div className="flex gap-4 border-b border-[#282828] mb-6">
           <button
-            onClick={() => setActiveTab("playlists")}
+            onClick={() => {
+              setActiveTab("playlists");
+              router.push("/library");
+            }}
             className={`pb-2 px-1 font-semibold text-sm border-b-2 transition-colors ${
               activeTab === "playlists"
                 ? "border-white text-white"
@@ -94,14 +114,17 @@ export default function LibraryPage() {
             Playlists
           </button>
           <button
-            onClick={() => setActiveTab("songs")}
+            onClick={() => {
+              setActiveTab("liked");
+              router.push("/library?tab=liked");
+            }}
             className={`pb-2 px-1 font-semibold text-sm border-b-2 transition-colors ${
-              activeTab === "songs"
+              activeTab === "liked"
                 ? "border-white text-white"
                 : "border-transparent text-gray-400 hover:text-white"
             }`}
           >
-            Songs
+            Liked Songs
           </button>
         </div>
       </div>
@@ -128,15 +151,23 @@ export default function LibraryPage() {
         </>
       ) : (
         <>
-          {songs.length > 0 ? (
+          {likedSongs.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-              {songs.map((song) => (
-                <SongCard key={song._id.toString()} song={song} queue={songs} />
+              {likedSongs.map((song) => (
+                <SongCard
+                  key={song._id.toString()}
+                  song={song}
+                  queue={likedSongs}
+                  showLikeButton={true}
+                />
               ))}
             </div>
           ) : (
             <div className="text-center py-12">
-              <p className="text-gray-400">No songs in library</p>
+              <p className="text-gray-400 mb-4">No liked songs yet</p>
+              <p className="text-gray-500 text-sm">
+                Like songs to see them here
+              </p>
             </div>
           )}
         </>

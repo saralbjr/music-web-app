@@ -1,22 +1,57 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { ISong } from "@/models/Song";
 import { useAudioStore } from "@/lib/store/audioStore";
-import Link from "next/link";
 
 interface SongCardProps {
   song: ISong;
   queue?: ISong[];
+  showLikeButton?: boolean;
 }
 
 /**
  * Spotify-style SongCard Component
  * Square card with hover play button overlay
  */
-export default function SongCard({ song, queue }: SongCardProps) {
+export default function SongCard({ song, queue, showLikeButton = false }: SongCardProps) {
   const { setCurrentSong, currentSong, isPlaying } = useAudioStore();
+  const [isLiked, setIsLiked] = useState(false);
+  const [liking, setLiking] = useState(false);
   const isCurrentlyPlaying =
     currentSong?._id.toString() === song._id.toString() && isPlaying;
+
+  // Check if song is liked on mount
+  useEffect(() => {
+    if (showLikeButton) {
+      checkIfLiked();
+    }
+  }, [showLikeButton, song._id]);
+
+  const checkIfLiked = async () => {
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      const response = await fetch("/api/songs/like", {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && data.data) {
+          const liked = data.data.some(
+            (likedSong: ISong) => likedSong._id.toString() === song._id.toString()
+          );
+          setIsLiked(liked);
+        }
+      }
+    } catch (error) {
+      console.error("Error checking if liked:", error);
+    }
+  };
 
   const handlePlay = (e: React.MouseEvent) => {
     e.preventDefault();
@@ -24,8 +59,41 @@ export default function SongCard({ song, queue }: SongCardProps) {
     setCurrentSong(song, queue);
   };
 
+  const handleLike = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    const token = localStorage.getItem("token");
+    if (!token) {
+      // Redirect to login if not authenticated
+      window.location.href = "/auth/login";
+      return;
+    }
+
+    setLiking(true);
+    try {
+      const response = await fetch("/api/songs/like", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ songId: song._id.toString() }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setIsLiked(data.isLiked);
+      }
+    } catch (error) {
+      console.error("Error liking song:", error);
+    } finally {
+      setLiking(false);
+    }
+  };
+
   return (
-    <Link href={`/songs/${song._id}`} className="group">
+    <div className="group">
       <div className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-all duration-200 cursor-pointer group">
         <div className="relative mb-4">
           {song.coverFile ? (
@@ -36,7 +104,7 @@ export default function SongCard({ song, queue }: SongCardProps) {
                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
               />
               {/* Play Button Overlay */}
-              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-200 flex items-center justify-center">
+              <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-200 flex items-center justify-center gap-2">
                 <button
                   onClick={handlePlay}
                   className={`w-14 h-14 rounded-full flex items-center justify-center shadow-2xl transform transition-all duration-200 ${
@@ -72,6 +140,33 @@ export default function SongCard({ song, queue }: SongCardProps) {
                     </svg>
                   )}
                 </button>
+                {/* Like Button */}
+                {showLikeButton && (
+                  <button
+                    onClick={handleLike}
+                    disabled={liking}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg transform transition-all duration-200 ${
+                      isLiked
+                        ? "bg-blue-500 scale-100 opacity-100"
+                        : "bg-white/20 scale-90 opacity-0 group-hover:scale-100 group-hover:opacity-100"
+                    }`}
+                    aria-label={isLiked ? "Unlike" : "Like"}
+                  >
+                    <svg
+                      className={`w-5 h-5 ${isLiked ? "text-white" : "text-white"}`}
+                      fill={isLiked ? "currentColor" : "none"}
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                      />
+                    </svg>
+                  </button>
+                )}
               </div>
             </div>
           ) : (
@@ -95,6 +190,6 @@ export default function SongCard({ song, queue }: SongCardProps) {
         </h3>
         <p className="text-sm text-gray-400 truncate">{song.artist}</p>
       </div>
-    </Link>
+    </div>
   );
 }

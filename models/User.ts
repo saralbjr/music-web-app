@@ -9,6 +9,7 @@ export interface IUser extends Document {
   email: string;
   password: string; // Hashed password
   role: "admin" | "user"; // User role
+  likedSongs: mongoose.Types.ObjectId[]; // Array of liked song IDs
   createdAt: Date;
   updatedAt: Date;
 }
@@ -43,6 +44,12 @@ const UserSchema: Schema = new Schema(
       default: "user",
       required: true,
     },
+    likedSongs: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: "Song",
+      },
+    ],
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt

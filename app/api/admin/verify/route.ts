@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAdmin } from "@/lib/middleware/auth";
+import connectDB from "@/lib/db";
+import User from "@/models/User";
 
 /**
  * GET /api/admin/verify
@@ -19,13 +21,25 @@ export async function GET(request: NextRequest) {
       );
     }
 
+    // Fetch full user data including name
+    await connectDB();
+    const fullUser = await User.findById(user.id).select("-password");
+
+    if (!fullUser) {
+      return NextResponse.json(
+        { success: false, error: "User not found" },
+        { status: 404 }
+      );
+    }
+
     return NextResponse.json(
       {
         success: true,
         user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
+          id: fullUser._id.toString(),
+          email: fullUser.email,
+          name: fullUser.name,
+          role: fullUser.role,
         },
       },
       { status: 200 }

@@ -87,9 +87,8 @@ export default function HomePage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {recentSongs.length > 0 ? (
             recentSongs.map((song) => (
-              <Link
+              <div
                 key={song._id.toString()}
-                href={`/songs/${song._id}`}
                 className="group"
               >
                 <div className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-all duration-200 cursor-pointer h-full">
@@ -123,7 +122,7 @@ export default function HomePage() {
                   </h3>
                   <p className="text-sm text-gray-400 truncate">{song.artist}</p>
                 </div>
-              </Link>
+              </div>
             ))
           ) : (
             <p className="text-gray-400 col-span-full">No songs available</p>

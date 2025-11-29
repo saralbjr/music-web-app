@@ -7,6 +7,7 @@ import {
   isAdminAuthenticated,
   logoutAdmin,
   getAdminToken,
+  getAdminUser,
 } from "@/lib/adminAuth";
 
 /**
@@ -23,32 +24,33 @@ export default function AdminLayout({
   const [mounted, setMounted] = useState(false);
   const [isAuthorized, setIsAuthorized] = useState(false);
   const [checking, setChecking] = useState(true);
+  const [adminUser, setAdminUser] = useState<{
+    id: string;
+    email: string;
+    name?: string;
+    role: string;
+  } | null>(null);
 
   useEffect(() => {
     const verifyAdminAccess = async () => {
-      // Don't check on login page
+      // Don't check on login page - session is cleared there on mount
       if (pathname === "/admin/login") {
         setMounted(true);
         setChecking(false);
         return;
       }
 
-      // First check localStorage
-      if (!isAdminAuthenticated()) {
+      // Always require login - check if token exists
+      const token = getAdminToken();
+      if (!token) {
+        logoutAdmin();
         router.push("/admin/login");
         setChecking(false);
         return;
       }
 
-      // Then verify with backend
+      // Verify with backend
       try {
-        const token = getAdminToken();
-        if (!token) {
-          router.push("/admin/login");
-          setChecking(false);
-          return;
-        }
-
         const response = await fetch("/api/admin/verify", {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -65,6 +67,8 @@ export default function AdminLayout({
           return;
         }
 
+        // Store admin user info for display
+        setAdminUser(data.user);
         setIsAuthorized(true);
         setMounted(true);
       } catch (error) {
@@ -82,6 +86,19 @@ export default function AdminLayout({
   const handleLogout = () => {
     logoutAdmin();
     router.push("/admin/login");
+  };
+
+  // Get admin initials for avatar
+  const getInitials = (user: { name?: string; email: string } | null) => {
+    if (!user) return "A";
+    if (user.name) {
+      const names = user.name.split(" ");
+      if (names.length >= 2) {
+        return (names[0][0] + names[names.length - 1][0]).toUpperCase();
+      }
+      return names[0][0].toUpperCase();
+    }
+    return user.email[0].toUpperCase();
   };
 
   if (!mounted || checking) {
@@ -156,12 +173,36 @@ export default function AdminLayout({
               </nav>
             </div>
             <div className="flex items-center space-x-4">
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition"
-              >
-                Logout
-              </button>
+              {/* Admin User Info */}
+              {adminUser && (
+                <div className="flex items-center space-x-3">
+                  {/* Admin Avatar with Initials */}
+                  <div className="flex items-center space-x-2">
+                    <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white font-semibold text-sm">
+                      {getInitials(adminUser)}
+                    </div>
+                    <span className="text-white text-sm font-medium">
+                      {adminUser.name || adminUser.email}
+                    </span>
+                  </div>
+
+                  {/* Go to Site Link */}
+                  <Link
+                    href="/"
+                    className="px-3 py-2 text-sm font-medium text-gray-300 hover:text-white hover:bg-[#1a1a1a] rounded transition"
+                  >
+                    Go to Site
+                  </Link>
+
+                  {/* Logout Button */}
+                  <button
+                    onClick={handleLogout}
+                    className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </div>
