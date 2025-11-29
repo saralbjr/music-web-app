@@ -1,15 +1,15 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getAuthHeaders } from "@/lib/adminAuth";
+import { getAuthHeaders, getAdminToken } from "@/lib/adminAuth";
 
 interface Song {
   _id: string;
   title: string;
   artist: string;
   duration: number;
-  audioUrl: string;
-  coverUrl: string;
+  audioFile: string;
+  coverFile: string;
   category: string;
   playCount: number;
   createdAt: string;
@@ -28,8 +28,8 @@ export default function AdminSongsPage() {
     title: "",
     artist: "",
     duration: "",
-    audioUrl: "",
-    coverUrl: "",
+    audioFile: "",
+    coverFile: "",
     category: "",
   });
   const [audioFile, setAudioFile] = useState<File | null>(null);
@@ -92,8 +92,8 @@ export default function AdminSongsPage() {
       title: song.title,
       artist: song.artist,
       duration: song.duration.toString(),
-      audioUrl: song.audioUrl,
-      coverUrl: song.coverUrl,
+      audioFile: song.audioFile,
+      coverFile: song.coverFile,
       category: song.category,
     });
     setShowModal(true);
@@ -111,8 +111,8 @@ export default function AdminSongsPage() {
         : "/api/admin/songs";
       const method = isEditing ? "PUT" : "POST";
 
-      let audioUrl = formData.audioUrl;
-      let coverUrl = formData.coverUrl;
+      let audioFilePath = formData.audioFile;
+      let coverFilePath = formData.coverFile;
       let durationValue = formData.duration
         ? parseInt(formData.duration, 10)
         : Number.NaN;
@@ -126,8 +126,10 @@ export default function AdminSongsPage() {
         uploadFormData.append("audio", audioFile);
         uploadFormData.append("image", imageFile);
 
+        const token = getAdminToken();
         const uploadRes = await fetch("/api/upload", {
           method: "POST",
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
           body: uploadFormData,
         });
 
@@ -137,11 +139,11 @@ export default function AdminSongsPage() {
 
         const uploadJson = await uploadRes.json();
 
-        audioUrl = uploadJson?.data?.audioUrl;
-        coverUrl = uploadJson?.data?.coverUrl;
+        audioFilePath = uploadJson?.data?.audioUrl;
+        coverFilePath = uploadJson?.data?.coverUrl;
         const detected = uploadJson?.data?.duration;
 
-        if (!audioUrl || !coverUrl) {
+        if (!audioFilePath || !coverFilePath) {
           throw new Error("Upload did not return file locations.");
         }
 
@@ -156,8 +158,8 @@ export default function AdminSongsPage() {
         setFormData((prev) => ({
           ...prev,
           duration: detected.toString(),
-          audioUrl,
-          coverUrl,
+          audioFile: audioFilePath,
+          coverFile: coverFilePath,
         }));
       } else {
         if (audioFile || imageFile) {
@@ -169,8 +171,10 @@ export default function AdminSongsPage() {
             uploadFormData.append("image", imageFile);
           }
 
+          const token = getAdminToken();
           const uploadRes = await fetch("/api/upload", {
             method: "POST",
+            headers: token ? { Authorization: `Bearer ${token}` } : {},
             body: uploadFormData,
           });
 
@@ -181,40 +185,40 @@ export default function AdminSongsPage() {
           const uploadJson = await uploadRes.json();
 
           if (audioFile) {
-            audioUrl = uploadJson?.data?.audioUrl;
+            audioFilePath = uploadJson?.data?.audioUrl;
             const detected = uploadJson?.data?.duration;
             if (detected && !Number.isNaN(detected)) {
               durationValue = detected;
               setDetectedDuration(detected);
               setFormData((prev) => ({
                 ...prev,
-                audioUrl: audioUrl || prev.audioUrl,
+                audioFile: audioFilePath || prev.audioFile,
                 duration: detected.toString(),
               }));
             } else {
               setFormData((prev) => ({
                 ...prev,
-                audioUrl: audioUrl || prev.audioUrl,
+                audioFile: audioFilePath || prev.audioFile,
               }));
             }
-            if (!audioUrl) {
+            if (!audioFilePath) {
               throw new Error("Upload did not return a new audio file location.");
             }
           }
 
           if (imageFile) {
-            coverUrl = uploadJson?.data?.coverUrl;
-            if (!coverUrl) {
+            coverFilePath = uploadJson?.data?.coverUrl;
+            if (!coverFilePath) {
               throw new Error("Upload did not return a new cover image location.");
             }
             setFormData((prev) => ({
               ...prev,
-              coverUrl,
+              coverFile: coverFilePath,
             }));
           }
         }
 
-        if (!audioUrl || !coverUrl) {
+        if (!audioFilePath || !coverFilePath) {
           throw new Error("Audio and cover image are required.");
         }
 
@@ -228,8 +232,8 @@ export default function AdminSongsPage() {
         artist: formData.artist,
         category: formData.category,
         duration: durationValue,
-        audioUrl,
-        coverUrl,
+        audioFile: audioFilePath,
+        coverFile: coverFilePath,
       };
 
       const res = await fetch(url, {
@@ -249,8 +253,8 @@ export default function AdminSongsPage() {
         title: "",
         artist: "",
         duration: "",
-        audioUrl: "",
-        coverUrl: "",
+        audioFile: "",
+        coverFile: "",
         category: "",
       });
       setAudioFile(null);
@@ -296,7 +300,7 @@ export default function AdminSongsPage() {
             setDetectedDuration(null);
             setShowModal(true);
           }}
-          className="px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg font-medium transition"
+          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium transition"
         >
           Add Song
         </button>
@@ -309,7 +313,7 @@ export default function AdminSongsPage() {
           placeholder="Search songs..."
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          className="w-full max-w-md px-4 py-2 bg-[#121212] border border-[#282828] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-500"
+          className="w-full max-w-md px-4 py-2 bg-[#121212] border border-[#282828] rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500"
         />
       </div>
 
@@ -398,7 +402,7 @@ export default function AdminSongsPage() {
                       setFormData({ ...formData, title: e.target.value })
                     }
                     required
-                    className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
+                    className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
                 <div>
@@ -412,7 +416,7 @@ export default function AdminSongsPage() {
                       setFormData({ ...formData, artist: e.target.value })
                     }
                     required
-                    className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
+                    className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-blue-500"
                   />
                 </div>
               </div>
@@ -445,7 +449,7 @@ export default function AdminSongsPage() {
                     }
                     required
                     min="0"
-                    className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
+                    className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-blue-500"
                   />
                   {detectedDuration && (
                     <p className="text-xs text-gray-400 mt-1">
@@ -484,7 +488,7 @@ export default function AdminSongsPage() {
                       href={formData.audioUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-green-400 underline"
+                      className="text-blue-400 underline"
                     >
                       View
                     </a>
@@ -515,7 +519,7 @@ export default function AdminSongsPage() {
                       href={formData.coverUrl}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="text-green-400 underline"
+                      className="text-blue-400 underline"
                     >
                       View
                     </a>
@@ -523,44 +527,12 @@ export default function AdminSongsPage() {
                 )}
               </div>
 
-              {isEditing && (
-                <>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Audio URL
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.audioUrl}
-                      onChange={(e) =>
-                        setFormData({ ...formData, audioUrl: e.target.value })
-                      }
-                      required
-                      className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-300 mb-2">
-                      Cover Image URL
-                    </label>
-                    <input
-                      type="url"
-                      value={formData.coverUrl}
-                      onChange={(e) =>
-                        setFormData({ ...formData, coverUrl: e.target.value })
-                      }
-                      required
-                      className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
-                    />
-                  </div>
-                </>
-              )}
 
               <div className="flex space-x-4">
                 <button
                   type="submit"
                   disabled={saving}
-                  className="flex-1 px-4 py-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
+                  className="flex-1 px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-lg font-medium transition"
                 >
                   {saving ? "Saving..." : isEditing ? "Update" : "Create"}
                 </button>

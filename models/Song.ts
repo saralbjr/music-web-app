@@ -8,8 +8,8 @@ export interface ISong extends Document {
   title: string;
   artist: string;
   duration: number; // Duration in seconds
-  audioUrl: string; // Path to MP3 file
-  coverUrl: string; // Path to cover image
+  audioFile: string; // Path to uploaded MP3 file from device
+  coverFile: string; // Path to uploaded cover image from device
   category: string; // Genre/category of the song
   playCount: number; // Number of times the song has been played
   createdAt: Date;
@@ -37,13 +37,13 @@ const SongSchema: Schema = new Schema(
       required: [true, "Duration is required"],
       min: [0, "Duration must be positive"],
     },
-    audioUrl: {
+    audioFile: {
       type: String,
-      required: [true, "Audio URL is required"],
+      required: [true, "Audio file upload is required"],
     },
-    coverUrl: {
+    coverFile: {
       type: String,
-      required: [true, "Cover image URL is required"],
+      required: [true, "Cover image file upload is required"],
     },
     category: {
       type: String,

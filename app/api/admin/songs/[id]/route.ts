@@ -73,11 +73,11 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { title, artist, duration, audioUrl, coverUrl, category } = body;
+    const { title, artist, duration, audioFile, coverFile, category } = body;
 
     const song = await Song.findByIdAndUpdate(
       id,
-      { title, artist, duration, audioUrl, coverUrl, category },
+      { title, artist, duration, audioFile, coverFile, category },
       {
         new: true,
         runValidators: true,

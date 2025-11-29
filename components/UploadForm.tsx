@@ -82,8 +82,8 @@ export default function UploadForm() {
         artist: formData.artist,
         category: formData.category,
         duration: detectedDuration,
-        audioUrl: uploadData.data.audioUrl,
-        coverUrl: uploadData.data.coverUrl,
+        audioFile: uploadData.data.audioUrl,
+        coverFile: uploadData.data.coverUrl,
       };
 
       const songResponse = await fetch('/api/songs', {
@@ -145,7 +145,7 @@ export default function UploadForm() {
           value={formData.title}
           onChange={handleInputChange}
           required
-          className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-green-500 focus:outline-none"
+          className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-blue-500 focus:outline-none"
         />
       </div>
 
@@ -160,7 +160,7 @@ export default function UploadForm() {
           value={formData.artist}
           onChange={handleInputChange}
           required
-          className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-green-500 focus:outline-none"
+          className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-blue-500 focus:outline-none"
         />
       </div>
 
@@ -175,7 +175,7 @@ export default function UploadForm() {
           value={formData.category}
           onChange={handleInputChange}
           required
-          className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-green-500 focus:outline-none"
+          className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-blue-500 focus:outline-none"
         />
       </div>
 
@@ -190,7 +190,7 @@ export default function UploadForm() {
           accept="audio/*"
           onChange={(e) => setAudioFile(e.target.files?.[0] || null)}
           required
-          className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-green-500 focus:outline-none"
+          className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-blue-500 focus:outline-none"
         />
       </div>
 
@@ -205,14 +205,14 @@ export default function UploadForm() {
           accept="image/*"
           onChange={(e) => setImageFile(e.target.files?.[0] || null)}
           required
-          className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-green-500 focus:outline-none"
+          className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-blue-500 focus:outline-none"
         />
       </div>
 
       <button
         type="submit"
         disabled={loading}
-        className="w-full px-4 py-2 bg-green-600 hover:bg-green-700 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {loading ? 'Uploading...' : 'Upload Song'}
       </button>

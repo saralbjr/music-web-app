@@ -94,10 +94,10 @@ export default function HomePage() {
               >
                 <div className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-all duration-200 cursor-pointer h-full">
                   <div className="relative mb-4">
-                    {song.coverUrl ? (
+                    {song.coverFile ? (
                       <div className="aspect-square rounded-lg overflow-hidden shadow-lg">
                         <img
-                          src={song.coverUrl}
+                          src={song.coverFile}
                           alt={song.title}
                           className="w-full h-full object-cover"
                         />

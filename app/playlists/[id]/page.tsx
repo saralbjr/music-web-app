@@ -36,6 +36,8 @@ export default function PlaylistPage() {
   const [songSearch, setSongSearch] = useState("");
   const [selectedSongIds, setSelectedSongIds] = useState<string[]>([]);
   const [formCover, setFormCover] = useState("");
+  const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchPlaylist();
@@ -169,6 +171,8 @@ export default function PlaylistPage() {
     if (!playlist) return;
     setFormName(playlist.name);
     setFormCover(playlist.coverUrl || "");
+    setCoverPreview(playlist.coverUrl || null);
+    setCoverFile(null);
     setFeedback(null);
     setManageModal("rename");
   };
@@ -189,6 +193,8 @@ export default function PlaylistPage() {
     setFeedback(null);
     setSelectedSongIds([]);
     setFormCover("");
+    setCoverPreview(null);
+    setCoverFile(null);
   };
 
   const fetchCatalogSongs = async () => {
@@ -221,6 +227,32 @@ export default function PlaylistPage() {
     );
   };
 
+  const handleCoverFileChange = (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith("image/")) {
+        setFeedback("Please select an image file.");
+        return;
+      }
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setFeedback("Image file size must be less than 5MB.");
+        return;
+      }
+      setCoverFile(file);
+      setFeedback(null);
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setCoverPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleRenameSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!playlist) return;
@@ -234,6 +266,31 @@ export default function PlaylistPage() {
 
     try {
       setActionLoading(true);
+      let coverUrl = formCover.trim();
+
+      // Upload cover file if one is selected
+      if (coverFile) {
+        const formData = new FormData();
+        formData.append("image", coverFile);
+
+        const uploadResponse = await fetch("/api/playlists/upload-cover", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${auth.token}`,
+          },
+          body: formData,
+        });
+
+        const uploadData = await uploadResponse.json();
+        if (uploadData.success && uploadData.data?.coverUrl) {
+          coverUrl = uploadData.data.coverUrl;
+        } else {
+          setFeedback(uploadData.error || "Failed to upload cover image.");
+          setActionLoading(false);
+          return;
+        }
+      }
+
       const response = await fetch("/api/playlists", {
         method: "PUT",
         headers: {
@@ -243,7 +300,7 @@ export default function PlaylistPage() {
         body: JSON.stringify({
           playlistId: playlist._id,
           name: trimmed,
-          coverUrl: formCover.trim(),
+          coverUrl: coverUrl || undefined,
         }),
       });
 
@@ -361,7 +418,7 @@ export default function PlaylistPage() {
 
   const fallbackCover =
     playlist.songs && playlist.songs.length > 0
-      ? playlist.songs[0]?.coverUrl
+      ? playlist.songs[0]?.coverFile
       : null;
   const coverImage = playlist.coverUrl || fallbackCover;
   const headerStyle = coverImage
@@ -420,7 +477,7 @@ export default function PlaylistPage() {
         <div className="mt-8 flex flex-wrap items-center gap-4">
           <button
             onClick={handlePlayAll}
-            className="w-14 h-14 bg-green-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-lg hover:shadow-xl"
+            className="w-14 h-14 bg-blue-500 rounded-full flex items-center justify-center hover:scale-110 transition-transform shadow-lg hover:shadow-xl"
             aria-label="Play"
           >
             <svg
@@ -577,9 +634,9 @@ export default function PlaylistPage() {
                     </button>
                   </div>
                   <div className="flex items-center gap-3 min-w-0">
-                    {song.coverUrl ? (
+                    {song.coverFile ? (
                       <img
-                        src={song.coverUrl}
+                        src={song.coverFile}
                         alt={song.title}
                         className="w-12 h-12 rounded object-cover hidden md:block"
                       />
@@ -591,7 +648,7 @@ export default function PlaylistPage() {
                     <div className="min-w-0 flex-1">
                       <div
                         className={`text-base font-medium truncate ${
-                          isPlayingSong ? "text-green-400" : "text-white"
+                          isPlayingSong ? "text-blue-400" : "text-white"
                         }`}
                       >
                         {song.title}
@@ -654,16 +711,49 @@ export default function PlaylistPage() {
                 />
               </label>
               <label className="block">
-                <span className="text-sm text-white/60">Cover image URL</span>
-                <input
-                  type="url"
-                  value={formCover}
-                  onChange={(e) => setFormCover(e.target.value)}
-                  className="mt-2 w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-white"
-                  placeholder="https://..."
-                />
+                <span className="text-sm text-white/60">Cover image</span>
+                <div className="mt-2 space-y-3">
+                  {coverPreview && (
+                    <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-white/20">
+                      <img
+                        src={coverPreview}
+                        alt="Cover preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCoverPreview(null);
+                          setCoverFile(null);
+                          setFormCover("");
+                        }}
+                        className="absolute top-1 right-1 w-6 h-6 bg-black/70 rounded-full flex items-center justify-center hover:bg-black/90 transition-colors"
+                        aria-label="Remove image"
+                      >
+                        <svg
+                          className="w-4 h-4 text-white"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      </button>
+                    </div>
+                  )}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleCoverFileChange}
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 focus:outline-none focus:border-white file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 file:cursor-pointer cursor-pointer"
+                  />
+                </div>
                 <p className="text-xs text-white/40 mt-1">
-                  Leave blank to pull artwork from the first song.
+                  Select an image from your device. Leave blank to pull artwork
+                  from the first song.
                 </p>
               </label>
               {feedback && <p className="text-sm text-red-400">{feedback}</p>}
@@ -794,9 +884,9 @@ export default function PlaylistPage() {
                       }`}
                     >
                       <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
-                        {song.coverUrl ? (
+                        {song.coverFile ? (
                           <img
-                            src={song.coverUrl}
+                            src={song.coverFile}
                             alt={song.title}
                             className="w-full h-full object-cover"
                           />
@@ -822,7 +912,7 @@ export default function PlaylistPage() {
                         <div
                           className={`w-5 h-5 rounded border ${
                             selected
-                              ? "bg-green-400 border-green-400"
+                              ? "bg-blue-400 border-blue-400"
                               : "border-white/30"
                           }`}
                         >

@@ -103,10 +103,10 @@ export default function SongPage() {
     <div className="p-8 pb-32">
       {/* Header Section */}
       <div className="flex flex-col md:flex-row gap-8 mb-12">
-        {song.coverUrl && (
+        {song.coverFile && (
           <div className="flex-shrink-0">
             <img
-              src={song.coverUrl}
+              src={song.coverFile}
               alt={song.title}
               className="w-64 h-64 md:w-80 md:h-80 rounded-lg object-cover shadow-2xl"
             />

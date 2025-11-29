@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { isAdminAuthenticated, logoutAdmin } from "@/lib/adminAuth";
+import {
+  isAdminAuthenticated,
+  logoutAdmin,
+  getAdminToken,
+} from "@/lib/adminAuth";
 
 /**
  * Admin Layout
@@ -17,12 +21,62 @@ export default function AdminLayout({
   const router = useRouter();
   const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
+  const [isAuthorized, setIsAuthorized] = useState(false);
+  const [checking, setChecking] = useState(true);
 
   useEffect(() => {
-    setMounted(true);
-    if (pathname !== "/admin/login" && !isAdminAuthenticated()) {
-      router.push("/admin/login");
-    }
+    const verifyAdminAccess = async () => {
+      // Don't check on login page
+      if (pathname === "/admin/login") {
+        setMounted(true);
+        setChecking(false);
+        return;
+      }
+
+      // First check localStorage
+      if (!isAdminAuthenticated()) {
+        router.push("/admin/login");
+        setChecking(false);
+        return;
+      }
+
+      // Then verify with backend
+      try {
+        const token = getAdminToken();
+        if (!token) {
+          router.push("/admin/login");
+          setChecking(false);
+          return;
+        }
+
+        const response = await fetch("/api/admin/verify", {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+
+        const data = await response.json();
+
+        if (!data.success || data.user?.role !== "admin") {
+          // Clear admin auth if verification fails
+          logoutAdmin();
+          router.push("/admin/login");
+          setChecking(false);
+          return;
+        }
+
+        setIsAuthorized(true);
+        setMounted(true);
+      } catch (error) {
+        console.error("Admin verification error:", error);
+        logoutAdmin();
+        router.push("/admin/login");
+      } finally {
+        setChecking(false);
+      }
+    };
+
+    verifyAdminAccess();
   }, [pathname, router]);
 
   const handleLogout = () => {
@@ -30,8 +84,12 @@ export default function AdminLayout({
     router.push("/admin/login");
   };
 
-  if (!mounted) {
-    return null;
+  if (!mounted || checking) {
+    return (
+      <div className="min-h-screen bg-[#000000] flex items-center justify-center">
+        <div className="text-white">Loading...</div>
+      </div>
+    );
   }
 
   // Don't show layout on login page
@@ -39,7 +97,8 @@ export default function AdminLayout({
     return <>{children}</>;
   }
 
-  if (!isAdminAuthenticated()) {
+  // If not authorized, don't show anything (redirect is happening)
+  if (!isAuthorized) {
     return null;
   }
 
@@ -58,7 +117,7 @@ export default function AdminLayout({
                   href="/admin"
                   className={`px-3 py-2 rounded text-sm font-medium transition ${
                     pathname === "/admin"
-                      ? "bg-green-500 text-white"
+                      ? "bg-blue-500 text-white"
                       : "text-gray-300 hover:text-white hover:bg-[#1a1a1a]"
                   }`}
                 >
@@ -68,7 +127,7 @@ export default function AdminLayout({
                   href="/admin/users"
                   className={`px-3 py-2 rounded text-sm font-medium transition ${
                     pathname === "/admin/users"
-                      ? "bg-green-500 text-white"
+                      ? "bg-blue-500 text-white"
                       : "text-gray-300 hover:text-white hover:bg-[#1a1a1a]"
                   }`}
                 >
@@ -78,7 +137,7 @@ export default function AdminLayout({
                   href="/admin/songs"
                   className={`px-3 py-2 rounded text-sm font-medium transition ${
                     pathname === "/admin/songs"
-                      ? "bg-green-500 text-white"
+                      ? "bg-blue-500 text-white"
                       : "text-gray-300 hover:text-white hover:bg-[#1a1a1a]"
                   }`}
                 >
@@ -88,7 +147,7 @@ export default function AdminLayout({
                   href="/admin/playlists"
                   className={`px-3 py-2 rounded text-sm font-medium transition ${
                     pathname === "/admin/playlists"
-                      ? "bg-green-500 text-white"
+                      ? "bg-blue-500 text-white"
                       : "text-gray-300 hover:text-white hover:bg-[#1a1a1a]"
                   }`}
                 >
@@ -97,12 +156,6 @@ export default function AdminLayout({
               </nav>
             </div>
             <div className="flex items-center space-x-4">
-              <Link
-                href="/"
-                className="text-gray-300 hover:text-white text-sm transition"
-              >
-                View Site
-              </Link>
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded text-sm font-medium transition"
@@ -121,4 +174,3 @@ export default function AdminLayout({
     </div>
   );
 }
-

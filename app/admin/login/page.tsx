@@ -18,15 +18,37 @@ export default function AdminLoginPage() {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    // Check if admin is already logged in
-    const token = localStorage.getItem("adminToken");
-    const adminUser = localStorage.getItem("adminUser");
-    if (token && adminUser) {
-      const user = JSON.parse(adminUser);
-      if (user.role === "admin") {
-        router.push("/admin");
+    // Check if admin is already logged in and verify with backend
+    const verifyAdmin = async () => {
+      const token = localStorage.getItem("adminToken");
+      const adminUser = localStorage.getItem("adminUser");
+      if (token && adminUser) {
+        const user = JSON.parse(adminUser);
+        if (user.role === "admin") {
+          // Verify with backend
+          try {
+            const response = await fetch("/api/admin/verify", {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+            const data = await response.json();
+            if (data.success && data.user?.role === "admin") {
+              router.push("/admin");
+            } else {
+              // Clear invalid admin session
+              localStorage.removeItem("adminToken");
+              localStorage.removeItem("adminUser");
+            }
+          } catch (error) {
+            // Clear invalid admin session on error
+            localStorage.removeItem("adminToken");
+            localStorage.removeItem("adminUser");
+          }
+        }
       }
-    }
+    };
+    verifyAdmin();
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -94,7 +116,7 @@ export default function AdminLoginPage() {
                   setFormData({ ...formData, email: e.target.value })
                 }
                 required
-                className="w-full px-4 py-3 bg-[#1a1a1a] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                className="w-full px-4 py-3 bg-[#1a1a1a] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 placeholder="admin@gmail.com"
               />
             </div>
@@ -114,7 +136,7 @@ export default function AdminLoginPage() {
                   setFormData({ ...formData, password: e.target.value })
                 }
                 required
-                className="w-full px-4 py-3 bg-[#1a1a1a] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-green-500 focus:ring-1 focus:ring-green-500"
+                className="w-full px-4 py-3 bg-[#1a1a1a] border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 placeholder="Enter your password"
               />
             </div>
@@ -122,7 +144,7 @@ export default function AdminLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-green-500 hover:bg-green-600 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-blue-500 hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Logging in..." : "Login"}
             </button>

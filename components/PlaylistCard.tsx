@@ -67,7 +67,7 @@ export default function PlaylistCard({
               </div>
             )}
             <div className="absolute bottom-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-              <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center shadow-2xl">
+              <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center shadow-2xl">
                 <svg
                   className="w-5 h-5 text-black"
                   fill="currentColor"

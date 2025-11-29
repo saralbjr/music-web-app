@@ -91,10 +91,10 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { title, artist, duration, audioUrl, coverUrl, category } = body;
+    const { title, artist, duration, audioFile, coverFile, category } = body;
 
     // Validate required fields
-    if (!title || !artist || !duration || !audioUrl || !coverUrl || !category) {
+    if (!title || !artist || !duration || !audioFile || !coverFile || !category) {
       return NextResponse.json(
         { success: false, error: 'All fields are required' },
         { status: 400 }
@@ -107,8 +107,8 @@ export async function POST(request: NextRequest) {
       title,
       artist,
       duration,
-      audioUrl,
-      coverUrl,
+      audioFile,
+      coverFile,
       category,
       playCount: 0,
     });

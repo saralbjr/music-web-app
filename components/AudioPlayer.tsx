@@ -175,9 +175,9 @@ export default function AudioPlayer() {
       <div className="flex items-center justify-between h-[90px] px-4">
         {/* Left: Song Info */}
         <div className="flex items-center gap-4 flex-1 min-w-[180px] max-w-[30%]">
-          {currentSong.coverUrl && (
+          {currentSong.coverFile && (
             <img
-              src={currentSong.coverUrl}
+              src={currentSong.coverFile}
               alt={currentSong.title}
               className="w-14 h-14 rounded object-cover"
             />
@@ -302,7 +302,7 @@ export default function AudioPlayer() {
       {/* Hidden Audio Element */}
       <audio
         ref={audioRef}
-        src={currentSong.audioUrl}
+        src={currentSong.audioFile}
         preload="metadata"
         playsInline
         onTimeUpdate={handleTimeUpdate}

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import "./globals.css";
-import Sidebar from "@/components/Sidebar";
-import Topbar from "@/components/Topbar";
-import AudioPlayer from "@/components/AudioPlayer";
+import LayoutWrapper from "@/components/LayoutWrapper";
 
 export const metadata: Metadata = {
   title: "SoundWave Music Player",
@@ -17,24 +15,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="bg-[#000000] text-white">
-        <div className="flex h-screen overflow-hidden">
-          {/* Sidebar */}
-          <Sidebar />
-
-          {/* Main Content Area */}
-          <div className="flex-1 flex flex-col overflow-hidden ml-[250px]">
-            {/* Topbar */}
-            <Topbar />
-
-            {/* Scrollable Content */}
-            <main className="flex-1 overflow-y-auto bg-[#121212] pb-24">
-              {children}
-            </main>
-          </div>
-        </div>
-
-        {/* Audio Player - Fixed at Bottom */}
-        <AudioPlayer />
+        <LayoutWrapper>{children}</LayoutWrapper>
       </body>
     </html>
   );
