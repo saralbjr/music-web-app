@@ -5,6 +5,8 @@ import { useParams, useRouter } from "next/navigation";
 import { ISong } from "@/models/Song";
 import { useAudioStore } from "@/lib/store/audioStore";
 import { fisherYatesShuffle } from "@/lib/algorithms/shuffle";
+import { mergeSort } from "@/lib/algorithms/mergeSort";
+import { useToast } from "@/components/ToastProvider";
 
 interface PlaylistWithSongs {
   _id: string;
@@ -12,6 +14,8 @@ interface PlaylistWithSongs {
   songs: ISong[];
   coverUrl?: string;
 }
+
+type PlaylistSortOption = "added" | "title" | "artist" | "duration";
 
 /**
  * Spotify-style Playlist Detail Page
@@ -24,7 +28,6 @@ export default function PlaylistPage() {
   const [playlist, setPlaylist] = useState<PlaylistWithSongs | null>(null);
   const [loading, setLoading] = useState(true);
   const [ownerName, setOwnerName] = useState<string>("You");
-  const [isFollowing, setIsFollowing] = useState(false);
   const [manageModal, setManageModal] = useState<
     "rename" | "delete" | "addSongs" | null
   >(null);
@@ -38,6 +41,15 @@ export default function PlaylistPage() {
   const [formCover, setFormCover] = useState("");
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [showSongMenuId, setShowSongMenuId] = useState<string | null>(null);
+  const [menuPlaylists, setMenuPlaylists] = useState<PlaylistWithSongs[]>([]);
+  const [menuPlaylistsLoaded, setMenuPlaylistsLoaded] = useState(false);
+  const [favoriteSongIds, setFavoriteSongIds] = useState<Set<string>>(
+    () => new Set()
+  );
+  const [sortOption, setSortOption] = useState<PlaylistSortOption>("added");
+  const [sortMenuOpen, setSortMenuOpen] = useState(false);
+  const { showToast } = useToast();
 
   useEffect(() => {
     fetchPlaylist();
@@ -105,6 +117,28 @@ export default function PlaylistPage() {
     }
   };
 
+  const fetchFavorites = async () => {
+    try {
+      const auth = getAuth();
+      if (!auth) return;
+      const res = await fetch("/api/songs/like", {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+        },
+      });
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data)) {
+        const ids = new Set<string>();
+        data.data.forEach((song: ISong) => {
+          ids.add(ensureSongId(song._id));
+        });
+        setFavoriteSongIds(ids);
+      }
+    } catch (error) {
+      console.error("Error fetching favorites for playlist page:", error);
+    }
+  };
+
   const handlePlayAll = () => {
     if (playlist && playlist.songs.length > 0) {
       setCurrentSong(playlist.songs[0], playlist.songs);
@@ -166,6 +200,138 @@ export default function PlaylistPage() {
   };
 
   const currentSongId = currentSong ? ensureSongId(currentSong._id) : null;
+
+  const sortedSongs = useMemo(() => {
+    if (!playlist) return [];
+    const base = [...playlist.songs];
+    switch (sortOption) {
+      case "title":
+        return mergeSort(base, "title", "asc");
+      case "artist":
+        return mergeSort(base, "artist", "asc");
+      case "duration":
+        return mergeSort(base, "duration", "asc");
+      case "added":
+      default:
+        return base;
+    }
+  }, [playlist, sortOption]);
+
+  const sortLabel: Record<PlaylistSortOption, string> = {
+    added: "Recently added",
+    title: "Title (A–Z)",
+    artist: "Artist (A–Z)",
+    duration: "Duration (shortest)",
+  };
+
+  useEffect(() => {
+    // Load favorites once for correct menu labels
+    fetchFavorites();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const fetchUserPlaylists = async () => {
+    try {
+      const auth = getAuth();
+      if (!auth) return;
+      const response = await fetch(`/api/playlists?userId=${auth.user.id}`, {
+        headers: {
+          Authorization: `Bearer ${auth.token}`,
+        },
+      });
+      const data = await response.json();
+      if (data.success && Array.isArray(data.data)) {
+        setMenuPlaylists(data.data);
+        setMenuPlaylistsLoaded(true);
+      }
+    } catch (error) {
+      console.error("Error fetching playlists for menu:", error);
+    }
+  };
+
+  const handleToggleLike = async (songId: string) => {
+    const auth = getAuth();
+    if (!auth) return;
+    try {
+      const res = await fetch("/api/songs/like", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({ songId }),
+      });
+      const data = await res.json();
+      if (data.success) {
+        setFavoriteSongIds((prev) => {
+          const next = new Set(prev);
+          if (data.isLiked) {
+            next.add(songId);
+          } else {
+            next.delete(songId);
+          }
+          return next;
+        });
+        // Let global liked listeners update their own views
+        window.dispatchEvent(
+          new CustomEvent(data.isLiked ? "song-liked" : "song-unliked", {
+            detail: { songId },
+          })
+        );
+        if (data.isLiked) {
+          showToast("Added to Favorites", "success");
+        } else {
+          showToast("Removed from Favorites", "info");
+        }
+      } else {
+        showToast(data.error || "Could not update Favorites", "error");
+      }
+    } catch (error) {
+      console.error("Error toggling like from playlist:", error);
+      showToast("Something went wrong updating Favorites", "error");
+    }
+  };
+
+  const handleRemoveSong = async (songId: string) => {
+    if (!playlist) return;
+    const auth = getAuth();
+    if (!auth) return;
+
+    try {
+      setActionLoading(true);
+      const remainingSongIds = playlist.songs
+        .map((song) => ensureSongId(song._id))
+        .filter((id) => id && id !== songId);
+
+      const response = await fetch("/api/playlists", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${auth.token}`,
+        },
+        body: JSON.stringify({
+          playlistId: playlist._id,
+          songs: remainingSongIds,
+        }),
+      });
+
+      const data = await response.json();
+      if (data.success) {
+        setPlaylist(data.data);
+        notifyPlaylistUpdate();
+        showToast("Removed from playlist", "success");
+      } else {
+        setFeedback(data.error || "Failed to remove song from playlist");
+        showToast(data.error || "Failed to remove from playlist", "error");
+      }
+    } catch (error) {
+      console.error("Error removing song from playlist:", error);
+      setFeedback("Something went wrong. Please try again.");
+      showToast("Something went wrong removing from playlist", "error");
+    } finally {
+      setActionLoading(false);
+    }
+  };
 
   const openRenameModal = () => {
     if (!playlist) return;
@@ -309,6 +475,7 @@ export default function PlaylistPage() {
         setPlaylist(data.data);
         closeModal();
         notifyPlaylistUpdate();
+        showToast("Playlist details updated", "success");
       } else {
         setFeedback(data.error || "Failed to update playlist");
       }
@@ -339,6 +506,7 @@ export default function PlaylistPage() {
       const data = await response.json();
       if (data.success) {
         notifyPlaylistUpdate();
+        showToast("Playlist deleted", "success");
         router.push("/playlists");
       } else {
         setFeedback(data.error || "Failed to delete playlist");
@@ -380,6 +548,7 @@ export default function PlaylistPage() {
         setPlaylist(data.data);
         closeModal();
         notifyPlaylistUpdate();
+        showToast("Added to playlist", "success");
       } else {
         setFeedback(data.error || "Failed to add songs");
       }
@@ -524,14 +693,6 @@ export default function PlaylistPage() {
           </button>
           <button
             type="button"
-            onClick={() => setIsFollowing((prev) => !prev)}
-            className="text-sm font-semibold text-white/70 hover:text-white"
-          >
-            {isFollowing ? "Following" : "Follow"}
-          </button>
-          <span className="text-white/50 text-sm">•</span>
-          <button
-            type="button"
             onClick={() => {
               setManageModal("delete");
               setFeedback(null);
@@ -548,15 +709,6 @@ export default function PlaylistPage() {
               <path d="M7 4a2 2 0 012-2h2a2 2 0 012 2v1H7V4z" />
             </svg>
           </button>
-          <button
-            type="button"
-            className="text-white/70 hover:text-white"
-            aria-label="More"
-          >
-            <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-              <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm2 2a2 2 0 100-4 2 2 0 000 4z" />
-            </svg>
-          </button>
         </div>
       </div>
 
@@ -568,6 +720,58 @@ export default function PlaylistPage() {
           </div>
         ) : (
           <div className="space-y-1">
+            {/* Sort bar */}
+            <div className="flex items-center justify-end px-8 pt-4 pb-2">
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setSortMenuOpen((prev) => !prev)}
+                  className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-xs text-gray-200 border border-white/10"
+                >
+                  <svg
+                    className="w-4 h-4"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3 5a1 1 0 011-1h9a1 1 0 110 2H7a1 1 0 01-1-1zm4 4a1 1 0 011-1h5a1 1 0 110 2h-5a1 1 0 01-1-1z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="uppercase tracking-wide text-[10px] text-gray-400">
+                    Sort by
+                  </span>
+                  <span className="text-xs font-medium">
+                    {sortLabel[sortOption]}
+                  </span>
+                </button>
+                {sortMenuOpen && (
+                  <div className="absolute right-0 mt-2 w-52 rounded-xl bg-[#181818] border border-white/10 shadow-xl text-xs text-gray-200 py-1 z-[55]">
+                    {(Object.keys(sortLabel) as PlaylistSortOption[]).map(
+                      (option) => (
+                        <button
+                          key={option}
+                          type="button"
+                          onClick={() => {
+                            setSortOption(option);
+                            setSortMenuOpen(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-3 py-2 hover:bg-white/10 ${
+                            sortOption === option ? "text-white" : ""
+                          }`}
+                        >
+                          <span>{sortLabel[option]}</span>
+                          {sortOption === option && (
+                            <span className="text-blue-400 text-[10px]">●</span>
+                          )}
+                        </button>
+                      )
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
             {/* Table Header */}
             <div className="sticky top-16 z-10 grid grid-cols-[16px_1fr_1fr_auto] md:grid-cols-[40px_minmax(0,3fr)_minmax(0,2fr)_minmax(0,2fr)_auto] gap-4 px-8 py-3 text-xs text-gray-400 border-b border-[#282828] bg-[#121212]/95 backdrop-blur">
               <div>#</div>
@@ -586,7 +790,7 @@ export default function PlaylistPage() {
             </div>
 
             {/* Songs List */}
-            {playlist.songs.map((song, index) => {
+            {sortedSongs.map((song, index) => {
               const songId = ensureSongId(song._id);
               const isPlayingSong =
                 currentSongId !== null && currentSongId === songId && isPlaying;
@@ -595,7 +799,7 @@ export default function PlaylistPage() {
                 <div
                   key={songId}
                   onClick={() => handleSongClick(song)}
-                  className="grid grid-cols-[16px_1fr_1fr_auto] md:grid-cols-[40px_minmax(0,3fr)_minmax(0,2fr)_minmax(0,2fr)_auto] gap-4 px-8 py-3 rounded hover:bg-white/5 group cursor-pointer transition"
+                  className="relative grid grid-cols-[16px_1fr_1fr_auto] md:grid-cols-[40px_minmax(0,3fr)_minmax(0,2fr)_minmax(0,2fr)_auto] gap-4 px-8 py-3 rounded hover:bg-white/5 group cursor-pointer transition"
                 >
                   <div className="flex items-center text-gray-400 group-hover:text-white">
                     {isPlayingSong ? (
@@ -664,8 +868,150 @@ export default function PlaylistPage() {
                   <div className="hidden md:flex items-center text-sm text-gray-400">
                     {new Date().toLocaleDateString()}
                   </div>
-                  <div className="flex items-center justify-end text-sm text-gray-400 tabular-nums">
-                    {formatDuration(song.duration)}
+                  <div className="flex items-center justify-end text-sm text-gray-400 tabular-nums gap-2">
+                    <span>{formatDuration(song.duration)}</span>
+
+                    {/* Hover-only three-dots icon; menu opens on click, stays on same line */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setShowSongMenuId((current) =>
+                            current === songId ? null : songId
+                          );
+                          if (!menuPlaylistsLoaded) {
+                            fetchUserPlaylists();
+                          }
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-white/60 hover:text-white p-1 rounded-full hover:bg-white/10"
+                        aria-label="Song options"
+                      >
+                        <svg
+                          className="w-5 h-5"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm2 2a2 2 0 100-4 2 2 0 000 4z" />
+                        </svg>
+                      </button>
+
+                      {showSongMenuId === songId && (
+                        <div className="absolute right-0 top-8 z-[60] w-56 bg-[#282828] rounded-xl shadow-xl border border-white/10 py-1 text-sm">
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleLike(songId);
+                              setShowSongMenuId(null);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-white/10 text-white/90"
+                          >
+                            {favoriteSongIds.has(songId)
+                              ? "Remove from Favorites"
+                              : "Save to Favorites"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleRemoveSong(songId);
+                              setShowSongMenuId(null);
+                            }}
+                            className="w-full text-left px-3 py-2 hover:bg-white/10 text-red-400"
+                          >
+                            Remove from this playlist
+                          </button>
+                          <div className="border-t border-white/10 my-1" />
+                          <div className="px-3 py-1 text-xs uppercase tracking-wide text-white/40">
+                            Add to playlist
+                          </div>
+                          <div className="max-h-48 overflow-y-auto">
+                            {menuPlaylists.length === 0 ? (
+                              <div className="px-3 py-2 text-white/60 text-xs">
+                                No other playlists
+                              </div>
+                            ) : (
+                              menuPlaylists
+                                .filter((p) => p._id !== playlist._id)
+                                .map((p) => {
+                                  const existingIds = Array.isArray(p.songs)
+                                    ? p.songs.map((s: any) =>
+                                        ensureSongId(
+                                          typeof s === "string" ? s : s._id
+                                        )
+                                      )
+                                    : [];
+                                  const alreadyIn =
+                                    existingIds.includes(songId);
+
+                                  return (
+                                    <button
+                                      key={p._id}
+                                      type="button"
+                                      disabled={alreadyIn}
+                                      onClick={async (e) => {
+                                        e.stopPropagation();
+                                        if (alreadyIn) return;
+                                        const auth = getAuth();
+                                        if (!auth) return;
+                                        try {
+                                          const nextIds = Array.from(
+                                            new Set([...existingIds, songId])
+                                          ).filter(Boolean);
+                                          const res = await fetch(
+                                            "/api/playlists",
+                                            {
+                                              method: "PUT",
+                                              headers: {
+                                                "Content-Type":
+                                                  "application/json",
+                                                Authorization: `Bearer ${auth.token}`,
+                                              },
+                                              body: JSON.stringify({
+                                                playlistId: p._id,
+                                                songs: nextIds,
+                                              }),
+                                            }
+                                          );
+                                          const updated = await res.json();
+                                          if (updated.success) {
+                                            notifyPlaylistUpdate();
+                                            showToast(
+                                              `Added to "${p.name}"`,
+                                              "success"
+                                            );
+                                          } else {
+                                            showToast(
+                                              updated.error ||
+                                                "Failed to add to playlist",
+                                              "error"
+                                            );
+                                          }
+                                        } catch (error) {
+                                          console.error(
+                                            "Error adding song to playlist:",
+                                            error
+                                          );
+                                        } finally {
+                                          setShowSongMenuId(null);
+                                        }
+                                      }}
+                                      className={`w-full text-left px-3 py-2 hover:bg-white/10 text-white/90 ${
+                                        alreadyIn
+                                          ? "opacity-50 cursor-not-allowed"
+                                          : ""
+                                      }`}
+                                    >
+                                      {alreadyIn ? `In ${p.name}` : p.name}
+                                    </button>
+                                  );
+                                })
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               );

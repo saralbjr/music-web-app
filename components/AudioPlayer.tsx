@@ -223,7 +223,7 @@ export default function AudioPlayer() {
   const progressPercent = duration > 0 ? (localTime / duration) * 100 : 0;
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 h-[90px] bg-[#181818] border-t border-[#282828] z-50">
+    <div className="fixed bottom-0 left-0 right-0 h-[90px] bg-[#181818] border-t border-[#282828] z-[45]">
       {/* Progress Bar */}
       <div
         className="h-1 bg-[#282828] cursor-pointer hover:h-[4px] transition-all"

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { ISong } from "@/models/Song";
 import { useAudioStore } from "@/lib/store/audioStore";
+import { useToast } from "@/components/ToastProvider";
 
 interface SongCardProps {
   song: ISong;
@@ -18,6 +19,7 @@ export default function SongCard({ song, queue, showLikeButton = false }: SongCa
   const { setCurrentSong, currentSong, isPlaying } = useAudioStore();
   const [isLiked, setIsLiked] = useState(false);
   const [liking, setLiking] = useState(false);
+  const { showToast } = useToast();
   const isCurrentlyPlaying =
     currentSong?._id.toString() === song._id.toString() && isPlaying;
 
@@ -90,9 +92,17 @@ export default function SongCard({ song, queue, showLikeButton = false }: SongCa
             detail: { songId: song._id.toString() },
           })
         );
+        if (data.isLiked) {
+          showToast("Added to Favorites", "success");
+        } else {
+          showToast("Removed from Favorites", "info");
+        }
+      } else {
+        showToast(data.error || "Could not update Favorites", "error");
       }
     } catch (error) {
       console.error("Error liking song:", error);
+      showToast("Something went wrong updating Favorites", "error");
     } finally {
       setLiking(false);
     }
