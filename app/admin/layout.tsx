@@ -4,10 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import {
-  isAdminAuthenticated,
   logoutAdmin,
   getAdminToken,
-  getAdminUser,
 } from "@/lib/adminAuth";
 
 /**

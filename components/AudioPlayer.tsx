@@ -57,6 +57,25 @@ export default function AudioPlayer() {
     }
   }, [isPlaying]);
 
+  // When the track changes, reload the element and start playback immediately
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio || !currentSong) return;
+
+    // Reset element state to the beginning of the new track
+    audio.currentTime = 0;
+    audio.load();
+
+    if (isPlaying) {
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((error) => {
+          console.error("Error playing audio after track change:", error);
+        });
+      }
+    }
+  }, [currentSong?._id, isPlaying]);
+
   // Update volume
   useEffect(() => {
     const audio = audioRef.current;
