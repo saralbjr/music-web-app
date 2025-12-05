@@ -290,8 +290,8 @@ export default function AdminSongsPage() {
               title: "",
               artist: "",
               duration: "",
-              audioUrl: "",
-              coverUrl: "",
+              audioFile: "",
+              coverFile: "",
               category: "",
             });
             setModalError("");
@@ -425,15 +425,24 @@ export default function AdminSongsPage() {
                 <label className="block text-sm font-medium text-gray-300 mb-2">
                   Category
                 </label>
-                <input
-                  type="text"
+                <select
                   value={formData.category}
                   onChange={(e) =>
                     setFormData({ ...formData, category: e.target.value })
                   }
                   required
                   className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
-                />
+                >
+                  <option value="">Select a category</option>
+                  <option value="Pop">Pop</option>
+                  <option value="rock">rock</option>
+                  <option value="hip hop">hip hop</option>
+                  <option value="jazz">jazz</option>
+                  <option value="electronic">electronic</option>
+                  <option value="classical">classical</option>
+                  <option value="country">country</option>
+                  <option value="R&B">R&B</option>
+                </select>
               </div>
 
               {isEditing ? (

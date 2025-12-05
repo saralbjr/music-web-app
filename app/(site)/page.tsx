@@ -85,7 +85,17 @@ export default function HomePage() {
     <div className="p-8 pb-32">
       {/* Good Evening Section */}
       <section className="mb-12">
-        <h1 className="text-3xl font-bold mb-6">{getGreeting()}</h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">{getGreeting()}</h1>
+          {songs.length > 6 && (
+            <Link
+              href="/songs"
+              className="text-sm text-gray-400 hover:text-white hover:underline transition-colors"
+            >
+              Show all
+            </Link>
+          )}
+        </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {recentSongs.length > 0 ? (
             recentSongs.map((song) => (

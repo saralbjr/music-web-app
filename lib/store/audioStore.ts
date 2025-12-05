@@ -25,6 +25,8 @@ interface AudioState {
   isShuffled: boolean;
   // Original queue before shuffle
   originalQueue: ISong[];
+  // Repeat mode: 'off' | 'all' | 'one'
+  repeatMode: 'off' | 'all' | 'one';
 }
 
 interface AudioActions {
@@ -48,6 +50,8 @@ interface AudioActions {
   toggleMute: () => void;
   // Toggle shuffle
   toggleShuffle: () => void;
+  // Toggle repeat mode (off -> all -> one -> off)
+  toggleRepeat: () => void;
   // Add song to queue
   addToQueue: (song: ISong) => void;
   // Clear queue
@@ -71,6 +75,7 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
   isMuted: false,
   isShuffled: false,
   originalQueue: [],
+  repeatMode: 'off',
 
   // Set current song and optionally set queue
   setCurrentSong: (song, queue) => {
@@ -94,12 +99,27 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
 
   // Play next song
   next: () => {
-    const { queue, currentIndex, isShuffled, originalQueue } = get();
+    const { queue, currentIndex, repeatMode } = get();
     if (queue.length === 0) return;
+
+    // If repeat one, just restart current song
+    if (repeatMode === 'one') {
+      set({
+        currentTime: 0,
+        isPlaying: true,
+      });
+      return;
+    }
 
     let nextIndex = currentIndex + 1;
     if (nextIndex >= queue.length) {
-      nextIndex = 0; // Loop back to start
+      // If repeat all, loop back to start, otherwise stop
+      if (repeatMode === 'all') {
+        nextIndex = 0;
+      } else {
+        set({ isPlaying: false });
+        return;
+      }
     }
 
     set({
@@ -112,8 +132,17 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
 
   // Play previous song
   previous: () => {
-    const { queue, currentIndex } = get();
+    const { queue, currentIndex, repeatMode } = get();
     if (queue.length === 0) return;
+
+    // If repeat one, restart current song
+    if (repeatMode === 'one') {
+      set({
+        currentTime: 0,
+        isPlaying: true,
+      });
+      return;
+    }
 
     let prevIndex = currentIndex - 1;
     if (prevIndex < 0) {
@@ -164,6 +193,15 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
         ),
       });
     }
+  },
+
+  // Toggle repeat mode
+  toggleRepeat: () => {
+    const { repeatMode } = get();
+    const nextMode: 'off' | 'all' | 'one' =
+      repeatMode === 'off' ? 'all' :
+      repeatMode === 'all' ? 'one' : 'off';
+    set({ repeatMode: nextMode });
   },
 
   // Add song to queue
