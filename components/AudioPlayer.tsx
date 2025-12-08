@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
+import Image from "next/image";
 import { useAudioStore } from "@/lib/store/audioStore";
 import { ISong } from "@/models/Song";
 
@@ -11,6 +12,7 @@ import { ISong } from "@/models/Song";
 export default function AudioPlayer() {
   const audioRef = useRef<HTMLAudioElement>(null);
   const seekTimeRef = useRef<number | null>(null);
+  const playLoggedSongIdRef = useRef<string | null>(null);
   const {
     currentSong,
     isPlaying,
@@ -21,7 +23,6 @@ export default function AudioPlayer() {
     currentIndex,
     isShuffled,
     repeatMode,
-    play,
     pause,
     togglePlay,
     next,
@@ -40,6 +41,14 @@ export default function AudioPlayer() {
   const [liking, setLiking] = useState(false);
   const lastUpdateRef = useRef<number>(0);
   const lastStoreUpdateRef = useRef<number>(0);
+
+  const getSongId = (song: ISong): string => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawId = (song as any)?._id;
+    if (typeof rawId === "string") return rawId;
+    if (rawId && typeof rawId.toString === "function") return rawId.toString();
+    return String(rawId ?? "");
+  };
 
   // Update audio element when state changes
   useEffect(() => {
@@ -78,6 +87,7 @@ export default function AudioPlayer() {
         });
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSong?._id, isPlaying]);
 
   // Update volume
@@ -87,19 +97,8 @@ export default function AudioPlayer() {
     audio.volume = isMuted ? 0 : volume;
   }, [volume, isMuted]);
 
-  // Reset time when song changes
-  useEffect(() => {
-    if (currentSong) {
-      setLocalTime(0);
-      lastUpdateRef.current = 0;
-      lastStoreUpdateRef.current = 0;
-      seekTimeRef.current = null;
-      checkIfLiked();
-    }
-  }, [currentSong?._id]);
-
   // Check if current song is liked
-  const checkIfLiked = async () => {
+  const checkIfLiked = useCallback(async () => {
     if (!currentSong) return;
     try {
       const token = localStorage.getItem("token");
@@ -117,19 +116,60 @@ export default function AudioPlayer() {
       if (response.ok) {
         const data = await response.json();
         if (data.success && data.data) {
-          const liked = data.data.some(
-            (likedSong: ISong) =>
-              likedSong._id.toString() === currentSong._id.toString()
-          );
+          const currentSongId = getSongId(currentSong);
+          const liked = data.data.some((likedSong: ISong) => {
+            const likedSongId = getSongId(likedSong);
+            return likedSongId === currentSongId;
+          });
           setIsLiked(liked);
         }
       }
     } catch (error) {
       console.error("Error checking if liked:", error);
     }
-  };
+  }, [currentSong]);
 
-  const handleLike = async () => {
+  const logPlayCount = useCallback(async (song: ISong) => {
+    const songId = getSongId(song);
+    if (!songId || playLoggedSongIdRef.current === songId) return;
+
+    try {
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const resp = await fetch("/api/songs/play", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ songId }),
+      });
+
+      if (resp.ok) {
+        playLoggedSongIdRef.current = songId;
+      }
+    } catch (error) {
+      console.error("Error logging play count:", error);
+    }
+  }, []);
+
+  // Reset time when song changes
+  useEffect(() => {
+    if (currentSong) {
+      setLocalTime(0);
+      lastUpdateRef.current = 0;
+      lastStoreUpdateRef.current = 0;
+      seekTimeRef.current = null;
+      playLoggedSongIdRef.current = null;
+      checkIfLiked();
+      logPlayCount(currentSong);
+    }
+  }, [currentSong, checkIfLiked, logPlayCount]);
+
+  const handleLike = useCallback(async () => {
     if (!currentSong) return;
 
     const token = localStorage.getItem("token");
@@ -140,13 +180,14 @@ export default function AudioPlayer() {
 
     setLiking(true);
     try {
+      const songId = getSongId(currentSong);
       const response = await fetch("/api/songs/like", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ songId: currentSong._id.toString() }),
+        body: JSON.stringify({ songId }),
       });
 
       const data = await response.json();
@@ -155,7 +196,7 @@ export default function AudioPlayer() {
         // Dispatch event to notify other components
         window.dispatchEvent(
           new CustomEvent(data.isLiked ? "song-liked" : "song-unliked", {
-            detail: { songId: currentSong._id.toString() },
+            detail: { songId },
           })
         );
       }
@@ -164,7 +205,7 @@ export default function AudioPlayer() {
     } finally {
       setLiking(false);
     }
-  };
+  }, [currentSong]);
 
   // Throttled time update handler
   const handleTimeUpdate = useCallback(() => {
@@ -286,10 +327,13 @@ export default function AudioPlayer() {
         {/* Left: Song Info */}
         <div className="flex items-center gap-3 flex-1 min-w-[180px] max-w-[30%]">
           {currentSong.coverFile && (
-            <img
+            <Image
               src={currentSong.coverFile}
               alt={currentSong.title}
-              className="w-14 h-14 rounded object-cover shadow-lg"
+              width={56}
+              height={56}
+              className="rounded object-cover shadow-lg"
+              unoptimized
             />
           )}
           <div className="min-w-0 flex-1">

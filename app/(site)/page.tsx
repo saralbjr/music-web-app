@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -15,6 +16,14 @@ export default function HomePage() {
   const [playlists, setPlaylists] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [recentSongs, setRecentSongs] = useState<ISong[]>([]);
+  const [recommendedSongs, setRecommendedSongs] = useState<ISong[]>([]);
+
+  const getSongId = (song: ISong) => {
+    const rawId = (song as any)?._id;
+    if (typeof rawId === "string") return rawId;
+    if (rawId && typeof rawId.toString === "function") return rawId.toString();
+    return String(rawId ?? "");
+  };
 
   useEffect(() => {
     fetchData();
@@ -36,6 +45,23 @@ export default function HomePage() {
       // Fetch playlists
       const user = localStorage.getItem("user");
       const token = localStorage.getItem("token");
+      // Fetch recommendations (uses liked songs if token is present)
+      try {
+        const recResponse = await fetch("/api/songs/recommend?limit=8", {
+          headers: token
+            ? {
+                Authorization: `Bearer ${token}`,
+              }
+            : {},
+        });
+        const recData = await recResponse.json();
+        if (recData.success && Array.isArray(recData.data)) {
+          setRecommendedSongs(recData.data);
+        }
+      } catch (error) {
+        console.error("Error fetching recommendations:", error);
+      }
+
       if (user && token) {
         const userData = JSON.parse(user);
         const playlistsResponse = await fetch(
@@ -99,14 +125,37 @@ export default function HomePage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
           {recentSongs.length > 0 ? (
             recentSongs.map((song) => (
-              <SongCard
-                key={song._id.toString()}
-                song={song}
-                queue={recentSongs}
-              />
+              <SongCard key={getSongId(song)} song={song} queue={recentSongs} />
             ))
           ) : (
             <p className="text-gray-400 col-span-full">No songs available</p>
+          )}
+        </div>
+      </section>
+
+      {/* Recommended For You */}
+      <section className="mb-12">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Recommended For You</h2>
+          {recommendedSongs.length > 0 && (
+            <span className="text-sm text-gray-400">
+              Personalized by likes & play count
+            </span>
+          )}
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+          {recommendedSongs.length > 0 ? (
+            recommendedSongs.map((song) => (
+              <SongCard
+                key={getSongId(song)}
+                song={song}
+                queue={recommendedSongs}
+              />
+            ))
+          ) : (
+            <p className="text-gray-400 col-span-full">
+              Recommendations appear after you like or play songs.
+            </p>
           )}
         </div>
       </section>
@@ -136,23 +185,23 @@ export default function HomePage() {
         <h2 className="text-2xl font-bold mb-6">Recently Played</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           {songs.slice(0, 6).map((song) => (
-            <SongCard key={song._id.toString()} song={song} queue={songs} />
+            <SongCard key={getSongId(song)} song={song} queue={songs} />
           ))}
         </div>
       </section>
 
       {/* Popular Songs */}
-      <section>
+      {/* <section>
         <h2 className="text-2xl font-bold mb-6">Popular Right Now</h2>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
-          {songs
+          {[...songs]
             .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
             .slice(0, 6)
             .map((song) => (
-              <SongCard key={song._id.toString()} song={song} queue={songs} />
+              <SongCard key={getSongId(song)} song={song} queue={songs} />
             ))}
         </div>
-      </section>
+      </section> */}
     </div>
   );
 }
