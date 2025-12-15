@@ -42,6 +42,13 @@ export default function AudioPlayer() {
   const lastUpdateRef = useRef<number>(0);
   const lastStoreUpdateRef = useRef<number>(0);
 
+  const getVolumeLevel = useCallback(() => {
+    if (isMuted || volume === 0) return "muted";
+    if (volume < 0.34) return "low";
+    if (volume < 0.67) return "mid";
+    return "high";
+  }, [isMuted, volume]);
+
   const getSongId = (song: ISong): string => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rawId = (song as any)?._id;
@@ -506,44 +513,100 @@ export default function AudioPlayer() {
             className="text-gray-400 hover:text-white transition-colors"
             aria-label={isMuted ? "Unmute" : "Mute"}
           >
-            {isMuted || volume === 0 ? (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.383 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.383l4-3.707a1 1 0 011.617.793zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            ) : volume < 0.5 ? (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.383 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.383l4-3.707a1 1 0 011.617.793z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            ) : (
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-                <path
-                  fillRule="evenodd"
-                  d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.383 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.383l4-3.707a1 1 0 011.617.793zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.984 5.984 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.983 3.983 0 00-1.172-2.828 1 1 0 010-1.415z"
-                  clipRule="evenodd"
-                />
-              </svg>
-            )}
+            {(() => {
+              const level = getVolumeLevel();
+              if (level === "muted") {
+                return (
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.383 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.383l4-3.707a1 1 0 011.617.793z"
+                      clipRule="evenodd"
+                    />
+                    <path
+                      fillRule="evenodd"
+                      d="M13.293 7.293a1 1 0 011.414 0L17 9.586l2.293-2.293a1 1 0 111.414 1.414L18.414 11l2.293 2.293a1 1 0 01-1.414 1.414L17 12.414l-2.293 2.293a1 1 0 01-1.414-1.414L15.586 11l-2.293-2.293a1 1 0 010-1.414z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                );
+              }
+
+              if (level === "low") {
+                return (
+                  <div className="flex items-center gap-[2px] transition-all">
+                    <svg
+                      className="w-5 h-5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.383 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.383l4-3.707a1 1 0 011.617.793z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span className="h-2 w-1 rounded bg-white/80 animate-pulse" />
+                  </div>
+                );
+              }
+
+              if (level === "mid") {
+                return (
+                  <div className="flex items-center gap-[2px] transition-all">
+                    <svg
+                      className="w-5 h-5"
+                      fill="currentColor"
+                      viewBox="0 0 20 20"
+                    >
+                      <path
+                        fillRule="evenodd"
+                        d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.383 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.383l4-3.707a1 1 0 011.617.793z"
+                        clipRule="evenodd"
+                      />
+                    </svg>
+                    <span className="h-2 w-1 rounded bg-white/70 animate-pulse" />
+                    <span className="h-3 w-1 rounded bg-white/80 animate-pulse" />
+                  </div>
+                );
+              }
+
+              return (
+                <div className="flex items-center gap-[2px] transition-all">
+                  <svg
+                    className="w-5 h-5"
+                    fill="currentColor"
+                    viewBox="0 0 20 20"
+                  >
+                    <path
+                      fillRule="evenodd"
+                      d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793L4.383 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.383l4-3.707a1 1 0 011.617.793z"
+                      clipRule="evenodd"
+                    />
+                  </svg>
+                  <span className="h-2 w-1 rounded bg-white/60 animate-pulse" />
+                  <span className="h-3 w-1 rounded bg-white/80 animate-pulse" />
+                  <span className="h-4 w-1 rounded bg-white animate-pulse" />
+                </div>
+              );
+            })()}
           </button>
           <input
             type="range"
             min="0"
             max="1"
             step="0.01"
-            value={volume}
+            value={isMuted ? 0 : volume}
             onChange={handleVolumeChange}
-            className="w-24 h-1 bg-[#535353] rounded-lg appearance-none cursor-pointer hover:h-[4px] transition-all"
+            className="w-24 h-1 bg-[#535353] rounded-lg appearance-none cursor-pointer hover:h-[4px] transition-all focus:outline-none focus:ring-2 focus:ring-blue-500/60"
             style={{
               background: `linear-gradient(to right, #fff 0%, #fff ${
-                volume * 100
-              }%, #535353 ${volume * 100}%, #535353 100%)`,
+                (isMuted ? 0 : volume) * 100
+              }%, #535353 ${(isMuted ? 0 : volume) * 100}%, #535353 100%)`,
             }}
           />
         </div>
