@@ -1,18 +1,33 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useState, useEffect } from "react";
+
+type SidebarPlaylist = {
+  _id: string;
+  name: string;
+};
+
+type RawSidebarPlaylist = {
+  _id?: string | { toString: () => string };
+  name?: string;
+};
+
+type SidebarProps = {
+  collapsed?: boolean;
+  onToggle?: () => void;
+};
 
 /**
  * Spotify-style Sidebar Component
  * Sticky left sidebar with navigation and playlists
+ * Supports collapsed/expanded states controlled by parent layout
  */
-export default function Sidebar() {
+export default function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
-  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [playlists, setPlaylists] = useState<SidebarPlaylist[]>([]);
 
   useEffect(() => {
     // Fetch playlists for the sidebar
@@ -29,7 +44,14 @@ export default function Sidebar() {
           });
           const data = await response.json();
           if (data.success) {
-            setPlaylists(data.data || []);
+            const rawPlaylists: RawSidebarPlaylist[] = data.data || [];
+            const typedPlaylists: SidebarPlaylist[] = rawPlaylists.map(
+              (playlist) => ({
+                _id: playlist?._id?.toString?.() ?? "",
+                name: playlist?.name ?? "Untitled Playlist",
+              })
+            );
+            setPlaylists(typedPlaylists);
           }
         } else {
           setPlaylists([]);
@@ -57,11 +79,21 @@ export default function Sidebar() {
     { path: "/library", icon: "Library", label: "Your Library" },
   ];
 
+  const widthClass = collapsed ? "w-[72px]" : "w-[250px]";
+  const showText = !collapsed;
+
   return (
-    <aside className="w-[250px] h-screen bg-[#000000] border-r border-[#222] flex flex-col fixed left-0 top-0 z-40">
-      {/* Logo */}
-      <div className="p-6">
-        <Link href="/" className="flex items-center gap-3 group">
+    <aside
+      className={`${widthClass} h-screen bg-[#000000] border-r border-[#222] flex flex-col fixed left-0 top-0 z-40 transition-all duration-300`}
+    >
+      {/* Logo + Collapse Toggle stacked to avoid overlap */}
+      <div className="p-3 flex flex-col gap-3">
+        <Link
+          href="/"
+          className={`flex items-center gap-3 group min-w-0 ${
+            collapsed ? "justify-center" : "justify-start"
+          }`}
+        >
           <div className="relative">
             <svg
               className="w-10 h-10 text-blue-500 group-hover:text-blue-400 transition-colors"
@@ -71,21 +103,57 @@ export default function Sidebar() {
               {/* Music Note Logo */}
               <path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z" />
             </svg>
-            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full opacity-75 group-hover:opacity-100 transition-opacity"></div>
+            <div className="absolute -top-1 -right-1 w-3 h-3 bg-blue-500 rounded-full opacity-75 group-hover:opacity-100 transition-opacity" />
           </div>
-          <span className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">
-            SoundWave
-          </span>
+          {showText && (
+            <span className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors truncate">
+              SoundWave
+            </span>
+          )}
         </Link>
+
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          title={collapsed ? "Expand sidebar" : "Collapse sidebar"}
+          className="group relative flex h-9 w-9 items-center justify-center rounded-full border border-[#2a2a2a] bg-[#1b1b1b] text-gray-200 hover:bg-[#2b2b2b] hover:text-white transition-colors shadow-sm"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            {collapsed ? (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 5l7 7-7 7"
+              />
+            ) : (
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            )}
+          </svg>
+        </button>
       </div>
 
       {/* Navigation */}
-      <nav className="px-3 mb-2">
+      <nav className="px-2 mb-2">
         {navItems.map((item) => (
           <Link
             key={item.path}
             href={item.path}
-            className={`flex items-center gap-4 px-3 py-2 rounded-md mb-1 transition-all group ${
+            title={collapsed ? item.label : undefined}
+            className={`flex items-center ${
+              collapsed ? "justify-center" : "justify-start"
+            } gap-4 px-3 py-2 rounded-md mb-1 transition-all group ${
               isActive(item.path)
                 ? "bg-[#282828] text-white"
                 : "text-gray-400 hover:text-white hover:bg-[#181818]"
@@ -110,27 +178,16 @@ export default function Sidebar() {
                 <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
               </svg>
             )}
-            <span className="font-semibold">{item.label}</span>
+            {showText && <span className="font-semibold">{item.label}</span>}
           </Link>
         ))}
-        {/* Discover Link */}
-        {/* <Link
-          href="/discover"
-          className={`flex items-center gap-4 px-3 py-2 rounded-md mb-1 transition-all group ${
-            isActive("/discover")
-              ? "bg-[#282828] text-white"
-              : "text-gray-400 hover:text-white hover:bg-[#181818]"
-          }`}
-        >
-          <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
-            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
-          </svg>
-          <span className="font-semibold">Discover</span>
-        </Link> */}
         {/* Liked Songs Link */}
         <Link
           href="/liked"
-          className={`flex items-center gap-4 px-3 py-2 rounded-md mb-1 transition-all group ${
+          title={collapsed ? "Favorites" : undefined}
+          className={`flex items-center ${
+            collapsed ? "justify-center" : "justify-start"
+          } gap-4 px-3 py-2 rounded-md mb-1 transition-all group ${
             isActive("/liked")
               ? "bg-[#282828] text-white"
               : "text-gray-400 hover:text-white hover:bg-[#181818]"
@@ -144,12 +201,12 @@ export default function Sidebar() {
               d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
             />
           </svg>
-          <span className="font-semibold">Favorites</span>
+          {showText && <span className="font-semibold">Favorites</span>}
         </Link>
       </nav>
 
       {/* Create Playlist Button */}
-      <div className="px-3 mb-2">
+      <div className="px-2 mb-2">
         <button
           onClick={() => {
             const user = localStorage.getItem("user");
@@ -159,7 +216,9 @@ export default function Sidebar() {
             }
             router.push("/playlists");
           }}
-          className="flex items-center gap-4 px-3 py-2 rounded-md text-gray-400 hover:text-white hover:bg-[#181818] transition-all w-full group"
+          className={`flex items-center ${
+            collapsed ? "justify-center" : "justify-start"
+          } gap-4 px-3 py-2 rounded-md text-gray-400 hover:text-white hover:bg-[#181818] transition-all w-full group`}
         >
           <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
             <path
@@ -168,21 +227,22 @@ export default function Sidebar() {
               clipRule="evenodd"
             />
           </svg>
-          <span className="font-semibold">Create Playlist</span>
+          {showText && <span className="font-semibold">Create Playlist</span>}
         </button>
       </div>
 
       {/* Divider */}
-      <div className="border-t border-[#282828] mx-3 my-2"></div>
+      <div className="border-t border-[#282828] mx-3 my-2" />
 
       {/* Playlists Section */}
-      <div className="flex-1 overflow-y-auto px-3 pb-4">
+      <div className="flex-1 overflow-y-auto px-2 pb-4">
         <div className="space-y-1">
           {playlists.length > 0 ? (
             playlists.map((playlist) => (
               <Link
                 key={playlist._id}
                 href={`/playlists/${playlist._id}`}
+                title={collapsed ? playlist.name : undefined}
                 className={`block px-3 py-2 rounded-md text-sm text-gray-400 hover:text-white hover:bg-[#181818] transition-all truncate ${
                   pathname === `/playlists/${playlist._id}`
                     ? "text-white bg-[#282828]"
