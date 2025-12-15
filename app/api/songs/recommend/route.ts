@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const limitParam = searchParams.get("limit");
     const categoryOverride = searchParams.get("category") || undefined;
+    const genre = searchParams.get("genre") || undefined;
     const limit = limitParam ? Math.max(1, parseInt(limitParam, 10)) : 10;
 
     // Optional auth to infer preference from liked songs
@@ -44,17 +45,40 @@ export async function GET(request: NextRequest) {
     }
 
     // Determine user category preference
-    let userCategory = categoryOverride;
-    if (!userCategory && user) {
+    let userCategory = categoryOverride || genre;
+    let likedIds: Set<string> | undefined;
+    if (user) {
       const userDoc = await User.findById(user.id)
         .select("likedSongs")
         .populate("likedSongs");
 
       const likedSongs = (userDoc?.likedSongs || []) as any[];
-      userCategory = deriveTopCategory(likedSongs);
+      likedIds = new Set(
+        likedSongs
+          .map((song) => song?._id?.toString?.())
+          .filter((id: string | undefined): id is string => Boolean(id))
+      );
+
+      if (!userCategory) {
+        userCategory = deriveTopCategory(likedSongs);
+      }
     }
 
-    const recommended = getRecommendations(songs, userCategory, limit);
+    // If a genre is provided, hard-filter to that category before scoring
+    const filteredSongs =
+      userCategory && (genre || categoryOverride)
+        ? songs.filter(
+            (song) =>
+              song.category?.toLowerCase() === userCategory?.toLowerCase()
+          )
+        : songs;
+
+    const recommended = getRecommendations(
+      filteredSongs,
+      userCategory,
+      limit,
+      likedIds
+    );
 
     return NextResponse.json(
       {

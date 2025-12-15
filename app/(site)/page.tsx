@@ -139,7 +139,7 @@ export default function HomePage() {
           <h2 className="text-2xl font-bold">Recommended For You</h2>
           {recommendedSongs.length > 0 && (
             <span className="text-sm text-gray-400">
-              Personalized by likes & play count
+              Personalized by likes, play count and genre
             </span>
           )}
         </div>

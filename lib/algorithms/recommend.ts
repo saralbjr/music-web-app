@@ -1,67 +1,78 @@
-import { ISong } from '@/models/Song';
+import { ISong } from "@/models/Song";
 
-/**
- * Recommendation Algorithm
- * Simple content-based recommendation system
- * Score = (playCount * 0.6) + (categoryMatch * 0.4)
- */
+type RecommendationOptions = {
+  userCategory?: string;
+  limit?: number;
+  likedIds?: Set<string>;
+};
+
+const PLAY_WEIGHT = 0.6;
+const CATEGORY_WEIGHT = 0.3;
+const LIKED_WEIGHT = 0.1;
+
+const getSongId = (song: ISong): string => {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rawId = (song as any)?._id;
+  if (typeof rawId === "string") return rawId;
+  if (rawId && typeof rawId.toString === "function") return rawId.toString();
+  return String(rawId ?? "");
+};
 
 /**
  * Calculate recommendation score for a song
- * @param song - Song to calculate score for
- * @param userCategory - User's preferred category (optional)
- * @param maxPlayCount - Maximum play count in the dataset (for normalization)
- * @returns Recommendation score (0-1)
+ * Score = play popularity (60%) + category match (30%) + liked bonus (10%)
+ * If no category preference, the category weight is redistributed to play score.
  */
 function calculateScore(
   song: ISong,
-  userCategory?: string,
-  maxPlayCount: number = 100
+  maxPlayCount: number,
+  options?: RecommendationOptions
 ): number {
-  // Normalize play count (0-1 range)
-  const playCountScore = Math.min(song.playCount / maxPlayCount, 1) * 0.6;
+  const userCategory = options?.userCategory;
+  const likedIds = options?.likedIds;
 
-  // Category match score (0-1)
+  const basePlay = Math.min(song.playCount / Math.max(maxPlayCount, 1), 1);
+  const playCountScore =
+    userCategory === undefined
+      ? Math.min(basePlay * ((PLAY_WEIGHT + CATEGORY_WEIGHT) / PLAY_WEIGHT), 1)
+      : basePlay * PLAY_WEIGHT;
+
   let categoryScore = 0;
-  if (userCategory && song.category.toLowerCase() === userCategory.toLowerCase()) {
-    categoryScore = 0.4;
-  } else if (!userCategory) {
-    // If no user category, give equal weight to play count
-    categoryScore = 0.4 * (playCountScore / 0.6);
+  if (
+    userCategory &&
+    song.category?.toLowerCase() === userCategory.toLowerCase()
+  ) {
+    categoryScore = CATEGORY_WEIGHT;
   }
 
-  return playCountScore + categoryScore;
+  const likedScore =
+    likedIds && likedIds.has(getSongId(song)) ? LIKED_WEIGHT : 0;
+
+  return playCountScore + categoryScore + likedScore;
 }
 
 /**
  * Get recommended songs based on user preferences
- * @param songs - Array of all songs
- * @param userCategory - User's preferred category (optional)
- * @param limit - Maximum number of recommendations (default: 10)
- * @returns Array of recommended songs sorted by score
  */
 export function getRecommendations(
   songs: ISong[],
   userCategory?: string,
-  limit: number = 10
+  limit: number = 10,
+  likedIds?: Set<string>
 ): ISong[] {
   if (songs.length === 0) {
     return [];
   }
 
-  // Find maximum play count for normalization
   const maxPlayCount = Math.max(...songs.map((song) => song.playCount), 1);
+  const options: RecommendationOptions = { userCategory, limit, likedIds };
 
-  // Calculate scores for all songs
   const songsWithScores = songs.map((song) => ({
     song,
-    score: calculateScore(song, userCategory, maxPlayCount),
+    score: calculateScore(song, maxPlayCount, options),
   }));
 
-  // Sort by score (descending)
   songsWithScores.sort((a, b) => b.score - a.score);
 
-  // Return top recommendations
   return songsWithScores.slice(0, limit).map((item) => item.song);
 }
-

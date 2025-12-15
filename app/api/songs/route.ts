@@ -1,9 +1,23 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { mergeSort } from '@/lib/algorithms/mergeSort';
-import { kmpMatch, calculateSearchScore } from '@/lib/algorithms/kmp';
-import connectDB from '@/lib/db';
-import Song from '@/models/Song';
-import { requireAdmin } from '@/lib/middleware/auth';
+import { NextRequest, NextResponse } from "next/server";
+import { mergeSort } from "@/lib/algorithms/mergeSort";
+import { kmpMatch, calculateSearchScore } from "@/lib/algorithms/kmp";
+import connectDB from "@/lib/db";
+import Song from "@/models/Song";
+import { requireAdmin } from "@/lib/middleware/auth";
+
+type SongDTO = {
+  _id: string;
+  title: string;
+  artist: string;
+  duration: number;
+  audioFile: string;
+  coverFile: string;
+  category: string;
+  playCount: number;
+  createdAt: Date;
+  updatedAt: Date;
+  searchScore?: number;
+};
 
 /**
  * GET /api/songs
@@ -28,16 +42,21 @@ export async function GET(request: NextRequest) {
   try {
     // Use MongoDB
     await connectDB();
-    let songs = await Song.find({});
-    songs = songs.map((song) => song.toObject());
+    const rawSongs = (await Song.find({})
+      .lean<SongDTO>()
+      .exec()) as unknown as SongDTO[];
+    let songs: SongDTO[] = rawSongs.map((song) => ({
+      ...song,
+      _id: song?._id?.toString?.() ?? "",
+    }));
 
     const searchParams = request.nextUrl.searchParams;
-    const search = searchParams.get('search') || '';
-    const sortBy = searchParams.get('sortBy') || 'createdAt';
-    const order = (searchParams.get('order') || 'desc') as 'asc' | 'desc';
-    const category = searchParams.get('category') || '';
-    const limitParam = searchParams.get('limit');
-    const offsetParam = searchParams.get('offset');
+    const search = searchParams.get("search") || "";
+    const sortBy = searchParams.get("sortBy") || "createdAt";
+    const order = (searchParams.get("order") || "desc") as "asc" | "desc";
+    const category = searchParams.get("category") || "";
+    const limitParam = searchParams.get("limit");
+    const offsetParam = searchParams.get("offset");
 
     // Apply category filter
     if (category) {
@@ -50,7 +69,8 @@ export async function GET(request: NextRequest) {
     if (search) {
       songs = songs
         .filter(
-          (song) => kmpMatch(song.title, search) || kmpMatch(song.artist, search)
+          (song) =>
+            kmpMatch(song.title, search) || kmpMatch(song.artist, search)
         )
         .map((song) => ({
           ...song,
@@ -62,7 +82,7 @@ export async function GET(request: NextRequest) {
     // Apply merge sort (only if not searching, as search already sorts by relevance)
     const sortedSongs = search
       ? songs
-      : mergeSort(songs, sortBy as keyof typeof songs[0], order);
+      : mergeSort(songs, sortBy as keyof (typeof songs)[0], order);
 
     // Apply pagination
     const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
@@ -79,9 +99,11 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to fetch songs";
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch songs' },
+      { success: false, error: message },
       { status: 500 }
     );
   }
@@ -102,9 +124,16 @@ export async function POST(request: NextRequest) {
     const { title, artist, duration, audioFile, coverFile, category } = body;
 
     // Validate required fields
-    if (!title || !artist || !duration || !audioFile || !coverFile || !category) {
+    if (
+      !title ||
+      !artist ||
+      !duration ||
+      !audioFile ||
+      !coverFile ||
+      !category
+    ) {
       return NextResponse.json(
-        { success: false, error: 'All fields are required' },
+        { success: false, error: "All fields are required" },
         { status: 400 }
       );
     }
@@ -122,9 +151,11 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: song }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to create song";
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to create song' },
+      { success: false, error: message },
       { status: 500 }
     );
   }
