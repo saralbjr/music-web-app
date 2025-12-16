@@ -10,6 +10,7 @@ export interface IUser extends Document {
   password: string; // Hashed password
   role: "admin" | "user"; // User role
   likedSongs: mongoose.Types.ObjectId[]; // Array of liked song IDs
+  image?: string; // Optional profile image URL
   createdAt: Date;
   updatedAt: Date;
 }
@@ -50,6 +51,11 @@ const UserSchema: Schema = new Schema(
         ref: "Song",
       },
     ],
+    image: {
+      type: String,
+      trim: true,
+      default: "",
+    },
   },
   {
     timestamps: true, // Automatically adds createdAt and updatedAt

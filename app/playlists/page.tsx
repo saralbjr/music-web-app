@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client";
 
 import { useEffect, useState } from "react";
@@ -243,7 +244,7 @@ export default function PlaylistsPage() {
         {playlists.length === 0 ? (
           <div className="text-center py-16 rounded-3xl border border-dashed border-white/10">
             <p className="text-white/70 text-lg mb-4">
-              You haven't created any playlists yet.
+              You haven&apos;t created any playlists yet.
             </p>
             <button
               onClick={() => openDialog("create")}

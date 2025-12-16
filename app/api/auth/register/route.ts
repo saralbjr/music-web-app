@@ -13,7 +13,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { name, email, password } = body;
+    const { name, email, password, image } = body;
 
     // Validate required fields
     if (!name || !email || !password) {
@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       email,
       password: hashedPassword,
       role: 'user', // Default role for new users
+      image: image?.trim() || '',
     });
 
     // Generate JWT token
@@ -48,6 +49,7 @@ export async function POST(request: NextRequest) {
       userId: user._id.toString(),
       email: user.email,
       role: user.role,
+      image: user.image,
     });
 
     // Remove password from response

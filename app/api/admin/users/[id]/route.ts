@@ -77,7 +77,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { name, email, password, role } = body;
+    const { name, email, password, role, image } = body;
 
     // Find user
     const userData = await User.findById(id);
@@ -113,6 +113,9 @@ export async function PUT(
       userData.password = await bcrypt.hash(password, 10);
     }
     if (role) userData.role = role;
+    if (typeof image === 'string') {
+      userData.image = image.trim();
+    }
 
     await userData.save();
 
@@ -122,6 +125,7 @@ export async function PUT(
       name: userData.name,
       email: userData.email,
       role: userData.role,
+      image: userData.image,
       createdAt: userData.createdAt,
       updatedAt: userData.updatedAt,
     };

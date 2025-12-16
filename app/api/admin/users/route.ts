@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
     await connectDB();
 
     const body = await request.json();
-    const { name, email, password, role } = body;
+    const { name, email, password, role, image } = body;
 
     // Validate required fields
     if (!name || !email || !password) {
@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
       email,
       password: hashedPassword,
       role: role || 'user',
+      image: image?.trim() || '',
     });
 
     // Remove password from response
@@ -119,6 +120,7 @@ export async function POST(request: NextRequest) {
       name: newUser.name,
       email: newUser.email,
       role: newUser.role,
+      image: newUser.image,
       createdAt: newUser.createdAt,
       updatedAt: newUser.updatedAt,
     };

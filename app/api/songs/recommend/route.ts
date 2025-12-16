@@ -25,10 +25,20 @@ export async function GET(request: NextRequest) {
     const limitParam = searchParams.get("limit");
     const categoryOverride = searchParams.get("category") || undefined;
     const genre = searchParams.get("genre") || undefined;
-    const limit = limitParam ? Math.max(1, parseInt(limitParam, 10)) : 10;
+    const limit = limitParam ? Math.max(1, parseInt(limitParam, 10)) : 6;
 
-    // Optional auth to infer preference from liked songs
-    const { user } = await authenticateUser(request);
+    // Require auth so recommendations are always user-specific
+    const { user, error } = await authenticateUser(request);
+
+    if (!user || error) {
+      return NextResponse.json(
+        {
+          success: false,
+          error: "Authentication required for recommendations",
+        },
+        { status: 401 }
+      );
+    }
 
     await connectDB();
 
@@ -47,21 +57,39 @@ export async function GET(request: NextRequest) {
     // Determine user category preference
     let userCategory = categoryOverride || genre;
     let likedIds: Set<string> | undefined;
-    if (user) {
-      const userDoc = await User.findById(user.id)
-        .select("likedSongs")
-        .populate("likedSongs");
 
-      const likedSongs = (userDoc?.likedSongs || []) as any[];
-      likedIds = new Set(
-        likedSongs
-          .map((song) => song?._id?.toString?.())
-          .filter((id: string | undefined): id is string => Boolean(id))
+    // At this point we always have an authenticated user
+    const userDoc = await User.findById(user.id)
+      .select("likedSongs")
+      .populate("likedSongs");
+
+    const likedSongs = (userDoc?.likedSongs || []) as any[];
+
+    // If user has no liked songs yet, do not generate generic/global
+    // recommendations. Frontend will show a first‑time UX card instead,
+    // prompting them to listen to or like songs first.
+    if (!likedSongs.length) {
+      return NextResponse.json(
+        {
+          success: true,
+          data: [],
+          total: 0,
+          limit,
+          inferredCategory: null,
+          needsInteraction: true,
+        },
+        { status: 200 }
       );
+    }
 
-      if (!userCategory) {
-        userCategory = deriveTopCategory(likedSongs);
-      }
+    likedIds = new Set(
+      likedSongs
+        .map((song) => song?._id?.toString?.())
+        .filter((id: string | undefined): id is string => Boolean(id))
+    );
+
+    if (!userCategory) {
+      userCategory = deriveTopCategory(likedSongs);
     }
 
     // If a genre is provided, hard-filter to that category before scoring

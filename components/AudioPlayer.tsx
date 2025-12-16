@@ -77,7 +77,9 @@ export default function AudioPlayer() {
     }
   }, [isPlaying]);
 
-  // When the track changes, reload the element and start playback immediately
+  // When the track changes, reload the element and start playback from the beginning
+  // NOTE: This effect intentionally only depends on the song id so that pausing
+  // does NOT reset playback to the start when the user resumes.
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !currentSong) return;
@@ -86,16 +88,15 @@ export default function AudioPlayer() {
     audio.currentTime = 0;
     audio.load();
 
-    if (isPlaying) {
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch((error) => {
-          console.error("Error playing audio after track change:", error);
-        });
-      }
+    // Auto‑play the newly selected track
+    const playPromise = audio.play();
+    if (playPromise !== undefined) {
+      playPromise.catch((error) => {
+        console.error("Error playing audio after track change:", error);
+      });
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSong?._id, isPlaying]);
+  }, [currentSong?._id]);
 
   // Update volume
   useEffect(() => {

@@ -114,6 +114,16 @@ export default function SongCard({
   const handlePlay = (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
+
+    // Require authentication before allowing playback
+    const storedUser = typeof window !== "undefined" ? localStorage.getItem("user") : null;
+    const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+
+    if (!storedUser || !token) {
+      window.location.href = "/auth/login";
+      return;
+    }
+
     setCurrentSong(song, queue);
   };
 

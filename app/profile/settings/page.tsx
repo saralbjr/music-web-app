@@ -3,6 +3,16 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 
+interface UserProfile {
+  id: string;
+  name: string;
+  email?: string;
+  image?: string;
+  role?: "admin" | "user";
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 interface ProfileFormState {
   name: string;
   image: string;
@@ -15,7 +25,7 @@ interface PasswordFormState {
 }
 
 export default function ProfileSettingsPage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<UserProfile | null>(null);
   const [profileForm, setProfileForm] = useState<ProfileFormState>({
     name: "",
     image: "",
@@ -41,23 +51,86 @@ export default function ProfileSettingsPage() {
     });
   }, []);
 
-  const handleProfileSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+  useEffect(() => {
+    const loadProfileFromApi = async () => {
+      if (typeof window === "undefined") return;
+      const token = localStorage.getItem("token");
+      if (!token) return;
+
+      try {
+        const res = await fetch("/api/profile", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await res.json();
+
+        if (data.success && data.data) {
+          setUser(data.data);
+          setProfileForm({
+            name: data.data.name || "",
+            image: data.data.image || "",
+          });
+          localStorage.setItem("user", JSON.stringify(data.data));
+        }
+      } catch (error) {
+        console.error("Failed to load profile", error);
+      }
+    };
+
+    loadProfileFromApi();
+  }, []);
+
+  const handleProfileSubmit = async (
+    event: React.FormEvent<HTMLFormElement>
+  ) => {
     event.preventDefault();
     if (!user) return;
     setSavingProfile(true);
     setProfileMessage(null);
 
-    const updatedUser = {
-      ...user,
-      name: profileForm.name.trim() || user.name,
-      image: profileForm.image.trim(),
-    };
+    const token = localStorage.getItem("token");
+    if (!token) {
+      setProfileMessage("You need to be logged in to update your profile.");
+      setSavingProfile(false);
+      return;
+    }
 
-    localStorage.setItem("user", JSON.stringify(updatedUser));
-    setUser(updatedUser);
-    window.dispatchEvent(new Event("auth-change"));
-    setProfileMessage("Profile updated successfully.");
-    setSavingProfile(false);
+    try {
+      const response = await fetch("/api/profile", {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: profileForm.name.trim() || user?.name || "",
+          image: profileForm.image.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (data.success && data.data) {
+        const updatedUser = data.data;
+        localStorage.setItem("user", JSON.stringify(updatedUser));
+        setUser(updatedUser);
+        setProfileForm({
+          name: updatedUser.name || "",
+          image: updatedUser.image || "",
+        });
+        window.dispatchEvent(new Event("auth-change"));
+        setProfileMessage("Profile updated successfully.");
+      } else {
+        setProfileMessage(data.error || "Failed to update profile.");
+      }
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "An error occurred while saving.";
+      setProfileMessage(message);
+    } finally {
+      setSavingProfile(false);
+    }
   };
 
   const handlePasswordSubmit = (event: React.FormEvent<HTMLFormElement>) => {
@@ -270,18 +343,3 @@ export default function ProfileSettingsPage() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
