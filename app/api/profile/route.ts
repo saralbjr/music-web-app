@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import User from '@/models/User';
-import { authenticateUser } from '@/lib/middleware/auth';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { NextRequest, NextResponse } from "next/server";
+import connectDB from "@/lib/db";
+import User from "@/models/User";
+import { authenticateUser } from "@/lib/middleware/auth";
 
 function authError(message: string) {
   return NextResponse.json({ success: false, error: message }, { status: 401 });
@@ -23,15 +24,15 @@ export async function GET(request: NextRequest) {
   try {
     const { user, error } = await authenticateUser(request);
     if (error || !user) {
-      return authError(error || 'Authentication required');
+      return authError(error || "Authentication required");
     }
 
     await connectDB();
-    const userDoc = await User.findById(user.id).select('-password');
+    const userDoc = await User.findById(user.id).select("-password");
 
     if (!userDoc) {
       return NextResponse.json(
-        { success: false, error: 'User not found' },
+        { success: false, error: "User not found" },
         { status: 404 }
       );
     }
@@ -42,7 +43,7 @@ export async function GET(request: NextRequest) {
     );
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch profile' },
+      { success: false, error: error.message || "Failed to fetch profile" },
       { status: 500 }
     );
   }
@@ -52,7 +53,7 @@ export async function PUT(request: NextRequest) {
   try {
     const { user, error } = await authenticateUser(request);
     if (error || !user) {
-      return authError(error || 'Authentication required');
+      return authError(error || "Authentication required");
     }
 
     await connectDB();
@@ -63,16 +64,16 @@ export async function PUT(request: NextRequest) {
     const userDoc = await User.findById(user.id);
     if (!userDoc) {
       return NextResponse.json(
-        { success: false, error: 'User not found' },
+        { success: false, error: "User not found" },
         { status: 404 }
       );
     }
 
-    if (typeof name === 'string' && name.trim()) {
+    if (typeof name === "string" && name.trim()) {
       userDoc.name = name.trim();
     }
 
-    if (typeof image === 'string') {
+    if (typeof image === "string") {
       userDoc.image = image.trim();
     }
 
@@ -84,11 +85,8 @@ export async function PUT(request: NextRequest) {
     );
   } catch (error: any) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to update profile' },
+      { success: false, error: error.message || "Failed to update profile" },
       { status: 500 }
     );
   }
 }
-
-
-
