@@ -12,6 +12,7 @@ export interface ISong extends Document {
   coverFile: string; // Path to uploaded cover image from device
   category: string; // Genre/category of the song
   playCount: number; // Number of times the song has been played
+  mood?: string; // Mood classification: Happy, Sad, Relaxed, Focused
   createdAt: Date;
   updatedAt: Date;
 }
@@ -54,6 +55,11 @@ const SongSchema: Schema = new Schema(
       type: Number,
       default: 0,
       min: [0, "Play count must be positive"],
+    },
+    mood: {
+      type: String,
+      enum: ["Happy", "Sad", "Relaxed", "Focused"],
+      trim: true,
     },
   },
   {

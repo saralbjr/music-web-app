@@ -77,6 +77,8 @@ export default function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
     { path: "/", icon: "Home", label: "Home" },
     { path: "/search", icon: "Search", label: "Search" },
     { path: "/library", icon: "Library", label: "Your Library" },
+    { path: "/schedules", icon: "Schedule", label: "Schedules" },
+    { path: "/analytics", icon: "Analytics", label: "Analytics" },
   ];
 
   const widthClass = collapsed ? "w-[72px]" : "w-[250px]";
@@ -176,6 +178,20 @@ export default function Sidebar({ collapsed = false, onToggle }: SidebarProps) {
             {item.icon === "Library" && (
               <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
                 <path d="M7 3a1 1 0 000 2h6a1 1 0 100-2H7zM4 7a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1zM2 11a2 2 0 012-2h12a2 2 0 012 2v4a2 2 0 01-2 2H4a2 2 0 01-2-2v-4z" />
+              </svg>
+            )}
+            {item.icon === "Schedule" && (
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M6 2a1 1 0 00-1 1v1H4a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2h-1V3a1 1 0 10-2 0v1H7V3a1 1 0 00-1-1zm0 5a1 1 0 000 2h8a1 1 0 100-2H6z"
+                  clipRule="evenodd"
+                />
+              </svg>
+            )}
+            {item.icon === "Analytics" && (
+              <svg className="w-6 h-6" fill="currentColor" viewBox="0 0 20 20">
+                <path d="M2 11a1 1 0 011-1h2a1 1 0 011 1v5a1 1 0 01-1 1H3a1 1 0 01-1-1v-5zM8 7a1 1 0 011-1h2a1 1 0 011 1v9a1 1 0 01-1 1H9a1 1 0 01-1-1V7zM14 4a1 1 0 011-1h2a1 1 0 011 1v12a1 1 0 01-1 1h-2a1 1 0 01-1-1V4z" />
               </svg>
             )}
             {showText && <span className="font-semibold">{item.label}</span>}

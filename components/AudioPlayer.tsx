@@ -41,6 +41,8 @@ export default function AudioPlayer() {
   const [liking, setLiking] = useState(false);
   const lastUpdateRef = useRef<number>(0);
   const lastStoreUpdateRef = useRef<number>(0);
+  const playStartTimeRef = useRef<number | null>(null);
+  const lastTrackedSongIdRef = useRef<string | null>(null);
 
   const getVolumeLevel = useCallback(() => {
     if (isMuted || volume === 0) return "muted";
@@ -57,6 +59,38 @@ export default function AudioPlayer() {
     return String(rawId ?? "");
   };
 
+  /**
+   * Track user behavior for analytics
+   * Computer Science Concept: Data Mining - Collecting user interaction data
+   */
+  const trackBehavior = useCallback(
+    async (action: "play" | "pause" | "skip" | "repeat" | "like" | "unlike", listenDuration?: number) => {
+      if (!currentSong) return;
+
+      const token = localStorage.getItem("token");
+      if (!token) return; // Only track for authenticated users
+
+      try {
+        const songId = getSongId(currentSong);
+        await fetch("/api/behavior/track", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            songId,
+            action,
+            listenDuration,
+          }),
+        });
+      } catch (error) {
+        console.error("Error tracking behavior:", error);
+      }
+    },
+    [currentSong]
+  );
+
   // Update audio element when state changes
   useEffect(() => {
     const audio = audioRef.current;
@@ -72,10 +106,26 @@ export default function AudioPlayer() {
           console.error("Error playing audio:", error);
         });
       }
+      // Track play action and record start time
+      if (currentSong) {
+        const songId = getSongId(currentSong);
+        if (lastTrackedSongIdRef.current !== songId) {
+          trackBehavior("play");
+          playStartTimeRef.current = Date.now();
+          lastTrackedSongIdRef.current = songId;
+        }
+      }
     } else {
       audio.pause();
+      // Track pause action and calculate listen duration
+      if (currentSong && playStartTimeRef.current) {
+        const listenDuration = Math.floor(
+          (Date.now() - playStartTimeRef.current) / 1000
+        );
+        trackBehavior("pause", listenDuration);
+      }
     }
-  }, [isPlaying]);
+  }, [isPlaying, currentSong, trackBehavior]);
 
   // When the track changes, reload the element and start playback from the beginning
   // NOTE: This effect intentionally only depends on the song id so that pausing
@@ -167,11 +217,38 @@ export default function AudioPlayer() {
   // Reset time when song changes
   useEffect(() => {
     if (currentSong) {
+      // Track listen duration for previous song if it was playing
+      if (playStartTimeRef.current && lastTrackedSongIdRef.current) {
+        const listenDuration = Math.floor(
+          (Date.now() - playStartTimeRef.current) / 1000
+        );
+        if (listenDuration > 0) {
+          // Track the previous song's listen duration
+          const token = localStorage.getItem("token");
+          if (token) {
+            fetch("/api/behavior/track", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`,
+              },
+              body: JSON.stringify({
+                songId: lastTrackedSongIdRef.current,
+                action: "play",
+                listenDuration,
+              }),
+            }).catch((error) => console.error("Error tracking previous song:", error));
+          }
+        }
+      }
+
       setLocalTime(0);
       lastUpdateRef.current = 0;
       lastStoreUpdateRef.current = 0;
       seekTimeRef.current = null;
       playLoggedSongIdRef.current = null;
+      playStartTimeRef.current = null;
+      lastTrackedSongIdRef.current = null;
       checkIfLiked();
       logPlayCount(currentSong);
     }
@@ -201,6 +278,8 @@ export default function AudioPlayer() {
       const data = await response.json();
       if (data.success) {
         setIsLiked(data.isLiked);
+        // Track like/unlike action
+        trackBehavior(data.isLiked ? "like" : "unlike");
         // Dispatch event to notify other components
         window.dispatchEvent(
           new CustomEvent(data.isLiked ? "song-liked" : "song-unliked", {
@@ -397,7 +476,12 @@ export default function AudioPlayer() {
 
             {/* Previous Button */}
             <button
-              onClick={previous}
+              onClick={() => {
+                if (currentSong) {
+                  trackBehavior("skip");
+                }
+                previous();
+              }}
               disabled={queue.length <= 1 && repeatMode === "off"}
               className="p-2 text-[#b3b3b3] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Previous"
@@ -434,7 +518,12 @@ export default function AudioPlayer() {
 
             {/* Next Button */}
             <button
-              onClick={next}
+              onClick={() => {
+                if (currentSong) {
+                  trackBehavior("skip");
+                }
+                next();
+              }}
               disabled={queue.length <= 1 && repeatMode === "off"}
               className="p-2 text-[#b3b3b3] hover:text-white transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
               aria-label="Next"
@@ -446,7 +535,13 @@ export default function AudioPlayer() {
 
             {/* Repeat Button */}
             <button
-              onClick={toggleRepeat}
+              onClick={() => {
+                toggleRepeat();
+                if (currentSong && repeatMode === "off") {
+                  // Track when repeat is enabled
+                  trackBehavior("repeat");
+                }
+              }}
               className={`p-2 transition-colors ${
                 repeatMode !== "off"
                   ? "text-blue-500"

@@ -18,6 +18,9 @@ export default function HomePage() {
   const [recentSongs, setRecentSongs] = useState<ISong[]>([]);
   const [recommendedSongs, setRecommendedSongs] = useState<ISong[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [selectedMood, setSelectedMood] = useState<string | null>(null);
+  const [moodSongs, setMoodSongs] = useState<ISong[]>([]);
+  const [loadingMood, setLoadingMood] = useState(false);
 
   const getSongId = (song: ISong) => {
     const rawId = (song as any)?._id;
@@ -100,6 +103,41 @@ export default function HomePage() {
     return "Good Evening";
   };
 
+  // Fetch mood-based recommendations
+  const fetchMoodSongs = async (mood: string) => {
+    setLoadingMood(true);
+    setSelectedMood(mood);
+    try {
+      const token = localStorage.getItem("token");
+      const headers: Record<string, string> = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const response = await fetch(`/api/songs/mood?mood=${mood}&limit=12`, {
+        headers,
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success && Array.isArray(data.data)) {
+          setMoodSongs(data.data);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching mood songs:", error);
+    } finally {
+      setLoadingMood(false);
+    }
+  };
+
+  const moods = [
+    { name: "Happy", emoji: "😊", color: "from-yellow-500 to-orange-500" },
+    { name: "Sad", emoji: "😢", color: "from-blue-500 to-indigo-500" },
+    { name: "Relaxed", emoji: "😌", color: "from-green-500 to-teal-500" },
+    { name: "Focused", emoji: "🎯", color: "from-purple-500 to-pink-500" },
+  ];
+
   if (loading) {
     return (
       <div className="p-8">
@@ -139,6 +177,62 @@ export default function HomePage() {
             <p className="text-gray-400 col-span-full">No songs available</p>
           )}
         </div>
+      </section>
+
+      {/* Mood-Based Recommendations */}
+      <section className="mb-12">
+        <div className="flex items-center justify-between mb-6">
+          <h2 className="text-2xl font-bold">Mood-Based Recommendations</h2>
+          <span className="text-sm text-gray-400">
+            Rule-based classification system
+          </span>
+        </div>
+        <div className="mb-6">
+          <div className="flex gap-3 flex-wrap">
+            {moods.map((mood) => (
+              <button
+                key={mood.name}
+                onClick={() => fetchMoodSongs(mood.name)}
+                className={`px-6 py-3 rounded-full font-medium transition-all ${
+                  selectedMood === mood.name
+                    ? `bg-gradient-to-r ${mood.color} text-white shadow-lg scale-105`
+                    : "bg-[#282828] text-gray-300 hover:bg-[#383838] hover:text-white"
+                }`}
+              >
+                <span className="mr-2">{mood.emoji}</span>
+                {mood.name}
+              </button>
+            ))}
+          </div>
+        </div>
+        {selectedMood && (
+          <div>
+            {loadingMood ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {[...Array(6)].map((_, i) => (
+                  <div
+                    key={i}
+                    className="h-48 bg-[#282828] rounded animate-pulse"
+                  ></div>
+                ))}
+              </div>
+            ) : moodSongs.length > 0 ? (
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
+                {moodSongs.map((song) => (
+                  <SongCard
+                    key={getSongId(song)}
+                    song={song}
+                    queue={moodSongs}
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className="text-gray-400 text-center py-8">
+                No songs found for {selectedMood} mood
+              </p>
+            )}
+          </div>
+        )}
       </section>
 
       {/* Recommended For You */}
