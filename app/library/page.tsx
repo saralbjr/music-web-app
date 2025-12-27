@@ -140,7 +140,17 @@ export default function LibraryPage() {
           {playlists.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {playlists.map((playlist) => (
-                <PlaylistCard key={playlist._id} playlist={playlist} />
+                <PlaylistCard
+                  key={playlist._id}
+                  playlist={{
+                    _id: playlist._id,
+                    name: playlist.name,
+                    songs: Array.isArray(playlist.songs) && playlist.songs.length > 0 && typeof playlist.songs[0] === 'object'
+                      ? playlist.songs as ISong[]
+                      : undefined,
+                    coverUrl: playlist.coverUrl,
+                  }}
+                />
               ))}
             </div>
           ) : (
@@ -161,7 +171,7 @@ export default function LibraryPage() {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
               {likedSongs.map((song) => (
                 <SongCard
-                  key={song._id.toString()}
+                  key={String(song._id || song.id)}
                   song={song}
                   queue={likedSongs}
                   showLikeButton={true}

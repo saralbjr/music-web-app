@@ -104,7 +104,7 @@ export default function AllSongsPage() {
       {songs.length > 0 ? (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           {songs.map((song) => (
-            <SongCard key={song._id.toString()} song={song} queue={songs} />
+            <SongCard key={String(song._id || song.id)} song={song} queue={songs} />
           ))}
         </div>
       ) : (

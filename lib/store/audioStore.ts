@@ -83,7 +83,7 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
     set({
       currentSong: song,
       queue: songQueue,
-      currentIndex: songQueue.findIndex((s) => s._id.toString() === song._id.toString()),
+      currentIndex: songQueue.findIndex((s) => String(s._id || s.id) === String(song._id || song.id)),
       isPlaying: true,
     });
   },
@@ -178,7 +178,7 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
         isShuffled: false,
         queue: originalQueue,
         currentIndex: originalQueue.findIndex(
-          (s) => s._id.toString() === get().currentSong?._id.toString()
+          (s) => String(s._id || s.id) === String(get().currentSong?._id || get().currentSong?.id)
         ),
       });
     } else {
@@ -189,7 +189,7 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
         originalQueue: queue,
         queue: shuffled,
         currentIndex: shuffled.findIndex(
-          (s) => s._id.toString() === get().currentSong?._id.toString()
+          (s) => String(s._id || s.id) === String(get().currentSong?._id || get().currentSong?.id)
         ),
       });
     }
@@ -207,7 +207,7 @@ export const useAudioStore = create<AudioStore>((set, get) => ({
   // Add song to queue
   addToQueue: (song) => {
     const { queue } = get();
-    if (!queue.find((s) => s._id.toString() === song._id.toString())) {
+    if (!queue.find((s) => String(s._id || s.id) === String(song._id || song.id))) {
       set({ queue: [...queue, song] });
     }
   },

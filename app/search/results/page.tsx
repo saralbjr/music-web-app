@@ -99,7 +99,7 @@ export default function SearchResultsPage() {
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4">
           {songs.map((song) => (
             <SongCard
-              key={song._id.toString()}
+              key={String(song._id || song.id)}
               song={song}
               queue={songs}
               showLikeButton={true}

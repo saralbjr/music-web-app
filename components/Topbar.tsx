@@ -15,6 +15,8 @@ export default function Topbar() {
     id: string;
     name: string;
     email: string;
+    role?: string;
+    image?: string;
   }
   const [user, setUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
@@ -122,7 +124,7 @@ export default function Topbar() {
     }
   };
 
-  const handleResultClick = () => {
+  const handleResultClick = (_song?: ISong) => {
     setShowSearchResults(false);
     router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
   };

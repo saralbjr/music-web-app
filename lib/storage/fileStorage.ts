@@ -72,7 +72,7 @@ export async function addSong(song: Omit<ISong, '_id' | 'createdAt' | 'updatedAt
  */
 export async function getSongById(id: string): Promise<ISong | null> {
   const songs = await readSongs();
-  return songs.find((s) => s._id.toString() === id) || null;
+  return songs.find((s) => String(s._id || s.id) === id) || null;
 }
 
 /**
@@ -80,17 +80,18 @@ export async function getSongById(id: string): Promise<ISong | null> {
  */
 export async function updateSong(id: string, updates: Partial<ISong>): Promise<ISong | null> {
   const songs = await readSongs();
-  const index = songs.findIndex((s) => s._id.toString() === id);
+  const index = songs.findIndex((s) => String(s._id || s.id) === id);
 
   if (index === -1) {
     return null;
   }
 
-  songs[index] = {
+  const updatedSong: ISong = {
     ...songs[index],
     ...updates,
     updatedAt: new Date(),
-  };
+  } as ISong;
+  songs[index] = updatedSong;
 
   await writeSongs(songs);
   return songs[index];
@@ -101,7 +102,7 @@ export async function updateSong(id: string, updates: Partial<ISong>): Promise<I
  */
 export async function deleteSong(id: string): Promise<boolean> {
   const songs = await readSongs();
-  const index = songs.findIndex((s) => s._id.toString() === id);
+  const index = songs.findIndex((s) => String(s._id || s.id) === id);
 
   if (index === -1) {
     return false;

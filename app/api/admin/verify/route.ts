@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
       {
         success: true,
         user: {
-          id: fullUser._id.toString(),
+          id: String(fullUser._id || fullUser.id),
           email: fullUser.email,
           name: fullUser.name,
           role: fullUser.role,

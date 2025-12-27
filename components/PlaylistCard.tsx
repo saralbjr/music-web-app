@@ -27,7 +27,7 @@ export default function PlaylistCard({
 }: PlaylistCardProps) {
   const fallbackCover =
     playlist.songs && playlist.songs.length > 0
-      ? playlist.songs[0]?.coverUrl
+      ? playlist.songs[0]?.coverFile
       : null;
   const coverImage = playlist.coverUrl || fallbackCover;
   const [menuOpen, setMenuOpen] = useState(false);

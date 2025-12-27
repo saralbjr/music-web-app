@@ -11,6 +11,8 @@ interface User {
   name: string;
   email: string;
   image?: string;
+  createdAt?: string | Date;
+  updatedAt?: string | Date;
 }
 
 interface Playlist {
@@ -117,7 +119,7 @@ export default function ProfilePage() {
   const displayName = user?.name || "Guest Listener";
   const memberSince =
     user?.createdAt || user?.updatedAt
-      ? new Date(user.createdAt || user.updatedAt).getFullYear()
+      ? new Date(user.createdAt as string | Date || user.updatedAt as string | Date).getFullYear()
       : new Date().getFullYear();
   const initials = useMemo(() => {
     return displayName
@@ -292,7 +294,17 @@ export default function ProfilePage() {
           ) : playlists.length ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
               {playlists.slice(0, 5).map((playlist) => (
-                <PlaylistCard key={playlist._id} playlist={playlist} />
+                <PlaylistCard
+                  key={playlist._id}
+                  playlist={{
+                    _id: playlist._id,
+                    name: playlist.name,
+                    songs: Array.isArray(playlist.songs) && playlist.songs.length > 0 && typeof playlist.songs[0] === 'object'
+                      ? playlist.songs as ISong[]
+                      : undefined,
+                    coverUrl: playlist.coverUrl,
+                  }}
+                />
               ))}
             </div>
           ) : (

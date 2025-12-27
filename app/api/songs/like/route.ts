@@ -124,7 +124,12 @@ export async function GET(request: NextRequest) {
     }
 
     // Convert to plain objects
-    const likedSongs = userDoc.likedSongs.map((song) => song.toObject());
+    const likedSongs = userDoc.likedSongs.map((song) => {
+      if (typeof song === 'object' && song !== null && 'toObject' in song) {
+        return (song as { toObject: () => unknown }).toObject();
+      }
+      return song;
+    });
 
     return NextResponse.json(
       {

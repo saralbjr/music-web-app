@@ -116,9 +116,12 @@ export async function GET(request: NextRequest) {
  */
 export async function POST(request: NextRequest) {
   try {
-    const { response } = await authenticateUser(request);
-    if (response) {
-      return response;
+    const { user, error } = await authenticateUser(request);
+    if (error || !user) {
+      return NextResponse.json(
+        { success: false, error: error || "Authentication required" },
+        { status: 401 }
+      );
     }
 
     await connectDB();

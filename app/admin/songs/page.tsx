@@ -491,11 +491,11 @@ export default function AdminSongsPage() {
                   required={!isEditing}
                   className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
                 />
-                {isEditing && formData.audioUrl && (
+                {isEditing && formData.audioFile && (
                   <p className="text-xs text-gray-400 mt-1">
                     Current audio:{" "}
                     <a
-                      href={formData.audioUrl}
+                      href={formData.audioFile}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-400 underline"
@@ -522,11 +522,11 @@ export default function AdminSongsPage() {
                   required={!isEditing}
                   className="w-full px-4 py-2 bg-[#1a1a1a] border border-[#282828] rounded-lg text-white focus:outline-none focus:border-green-500"
                 />
-                {isEditing && formData.coverUrl && (
+                {isEditing && formData.coverFile && (
                   <p className="text-xs text-gray-400 mt-1">
                     Current cover:{" "}
                     <a
-                      href={formData.coverUrl}
+                      href={formData.coverFile}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-400 underline"
