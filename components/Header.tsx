@@ -9,7 +9,12 @@ import { useRouter } from 'next/navigation';
  * Navigation header with login/logout functionality
  */
 export default function Header() {
-  const [user, setUser] = useState<any>(null);
+  interface User {
+    id: string;
+    name: string;
+    email: string;
+  }
+  const [user, setUser] = useState<User | null>(null);
   const router = useRouter();
 
   useEffect(() => {

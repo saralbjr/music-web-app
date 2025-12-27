@@ -30,6 +30,7 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const fetchUsers = async () => {

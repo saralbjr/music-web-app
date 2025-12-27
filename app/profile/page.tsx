@@ -6,12 +6,26 @@ import SongCard from "@/components/SongCard";
 import PlaylistCard from "@/components/PlaylistCard";
 import { ISong } from "@/models/Song";
 
+interface User {
+  id: string;
+  name: string;
+  email: string;
+  image?: string;
+}
+
+interface Playlist {
+  _id: string;
+  name: string;
+  songs: string[] | ISong[];
+  coverUrl?: string;
+}
+
 export default function ProfilePage() {
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
   const [recentSongs, setRecentSongs] = useState<ISong[]>([]);
   const [likedSongs, setLikedSongs] = useState<ISong[]>([]);
   const [topPlayedSongs, setTopPlayedSongs] = useState<ISong[]>([]);
-  const [playlists, setPlaylists] = useState<any[]>([]);
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

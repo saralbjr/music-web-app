@@ -53,6 +53,7 @@ export default function PlaylistPage() {
 
   useEffect(() => {
     fetchPlaylist();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
 
   const ensureSongId = (value: unknown): string => {
@@ -936,7 +937,7 @@ export default function PlaylistPage() {
                                 .filter((p) => p._id !== playlist._id)
                                 .map((p) => {
                                   const existingIds = Array.isArray(p.songs)
-                                    ? p.songs.map((s: any) =>
+                                    ? p.songs.map((s) =>
                                         ensureSongId(
                                           typeof s === "string" ? s : s._id
                                         )

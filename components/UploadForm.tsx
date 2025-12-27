@@ -113,8 +113,8 @@ export default function UploadForm() {
       setTimeout(() => {
         router.refresh();
       }, 1000);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }

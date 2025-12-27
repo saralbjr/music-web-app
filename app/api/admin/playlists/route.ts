@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import connectDB from '@/lib/db';
-import Playlist from '@/models/Playlist';
-import { requireAdmin } from '@/lib/middleware/auth';
-import mongoose from 'mongoose';
+import { NextRequest, NextResponse } from "next/server";
+import connectDB from "@/lib/db";
+import Playlist from "@/models/Playlist";
+import { requireAdmin } from "@/lib/middleware/auth";
+import mongoose from "mongoose";
 
 /**
  * GET /api/admin/playlists
@@ -11,26 +11,26 @@ import mongoose from 'mongoose';
 export async function GET(request: NextRequest) {
   try {
     // Check admin authentication
-    const { user, error, response } = await requireAdmin(request);
+    const { response } = await requireAdmin(request);
     if (response) return response;
 
     await connectDB();
 
     const searchParams = request.nextUrl.searchParams;
-    const limit = parseInt(searchParams.get('limit') || '10', 10);
-    const offset = parseInt(searchParams.get('offset') || '0', 10);
-    const search = searchParams.get('search') || '';
+    const limit = parseInt(searchParams.get("limit") || "10", 10);
+    const offset = parseInt(searchParams.get("offset") || "0", 10);
+    const search = searchParams.get("search") || "";
 
     // Build query
-    let query: any = {};
+    const query: Record<string, unknown> = {};
     if (search) {
-      query.name = { $regex: search, $options: 'i' };
+      query.name = { $regex: search, $options: "i" };
     }
 
     // Get playlists with populated user and songs
     const playlists = await Playlist.find(query)
-      .populate('userId', 'name email')
-      .populate('songs')
+      .populate("userId", "name email")
+      .populate("songs")
       .sort({ createdAt: -1 })
       .limit(limit)
       .skip(offset);
@@ -48,9 +48,13 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch playlists' },
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to fetch playlists",
+      },
       { status: 500 }
     );
   }
@@ -63,7 +67,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check admin authentication
-    const { user, error, response } = await requireAdmin(request);
+    const { response } = await requireAdmin(request);
     if (response) return response;
 
     await connectDB();
@@ -74,14 +78,14 @@ export async function POST(request: NextRequest) {
     // Validate required fields
     if (!name || !userId) {
       return NextResponse.json(
-        { success: false, error: 'Playlist name and user ID are required' },
+        { success: false, error: "Playlist name and user ID are required" },
         { status: 400 }
       );
     }
 
     if (!mongoose.Types.ObjectId.isValid(userId)) {
       return NextResponse.json(
-        { success: false, error: 'Invalid user ID' },
+        { success: false, error: "Invalid user ID" },
         { status: 400 }
       );
     }
@@ -93,18 +97,21 @@ export async function POST(request: NextRequest) {
     });
 
     const populatedPlaylist = await Playlist.findById(playlist._id)
-      .populate('userId', 'name email')
-      .populate('songs');
+      .populate("userId", "name email")
+      .populate("songs");
 
     return NextResponse.json(
       { success: true, data: populatedPlaylist },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to create playlist' },
+      {
+        success: false,
+        error:
+          error instanceof Error ? error.message : "Failed to create playlist",
+      },
       { status: 500 }
     );
   }
 }
-

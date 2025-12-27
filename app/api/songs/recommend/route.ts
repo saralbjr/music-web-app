@@ -56,7 +56,6 @@ export async function GET(request: NextRequest) {
 
     // Determine user category preference
     let userCategory = categoryOverride || genre;
-    let likedIds: Set<string> | undefined;
 
     // At this point we always have an authenticated user
     const userDoc = await User.findById(user.id)
@@ -82,7 +81,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    likedIds = new Set(
+    const likedIds = new Set(
       likedSongs
         .map((song) => song?._id?.toString?.())
         .filter((id: string | undefined): id is string => Boolean(id))
@@ -118,12 +117,12 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Recommendation error:", error);
     return NextResponse.json(
       {
         success: false,
-        error: error.message || "Failed to fetch recommendations",
+        error: error instanceof Error ? error.message : "Failed to fetch recommendations",
       },
       { status: 500 }
     );

@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useState } from "react";
+import { createContext, useCallback, useContext, useState } from "react";
 
 type ToastVariant = "success" | "error" | "info";
 

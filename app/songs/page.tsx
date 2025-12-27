@@ -16,6 +16,7 @@ export default function AllSongsPage() {
 
   useEffect(() => {
     fetchSongs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sortBy, order]);
 
   const fetchSongs = async () => {

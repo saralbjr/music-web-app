@@ -64,9 +64,9 @@ export async function POST(request: NextRequest) {
       { success: true, data: { user: userResponse, token } },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to register user' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to register user' },
       { status: 500 }
     );
   }

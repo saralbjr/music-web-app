@@ -44,8 +44,8 @@ export default function LoginPage() {
       } else {
         setError(data.error || "Login failed");
       }
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -152,7 +152,7 @@ export default function LoginPage() {
         </form>
 
         <p className="mt-6 text-center text-gray-400">
-          Don't have an account?{" "}
+          Don&apos;t have an account?{" "}
           <Link
             href="/auth/register"
             className="text-blue-500 hover:text-blue-400"

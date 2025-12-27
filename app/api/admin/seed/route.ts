@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import connectDB from '@/lib/db';
 import User from '@/models/User';
 import bcrypt from 'bcryptjs';
@@ -8,7 +8,7 @@ import bcrypt from 'bcryptjs';
  * Seed admin user (admin@gmail.com / admin123)
  * This is a one-time setup route
  */
-export async function POST(request: NextRequest) {
+export async function POST() {
   try {
     await connectDB();
 
@@ -54,9 +54,9 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     );
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to seed admin user' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to seed admin user' },
       { status: 500 }
     );
   }

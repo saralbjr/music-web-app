@@ -57,7 +57,7 @@ export async function addSong(song: Omit<ISong, '_id' | 'createdAt' | 'updatedAt
   const songs = await readSongs();
   const newSong: ISong = {
     ...song,
-    _id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as any,
+    _id: `file_${Date.now()}_${Math.random().toString(36).substr(2, 9)}` as unknown as string,
     createdAt: new Date(),
     updatedAt: new Date(),
   } as ISong;

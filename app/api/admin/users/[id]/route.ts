@@ -15,7 +15,7 @@ export async function GET(
 ) {
   try {
     // Check admin authentication
-    const { user, error, response } = await requireAdmin(request);
+    const { response } = await requireAdmin(request);
     if (response) return response;
 
     await connectDB();
@@ -43,9 +43,9 @@ export async function GET(
       { success: true, data: userData },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch user' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch user' },
       { status: 500 }
     );
   }
@@ -61,7 +61,7 @@ export async function PUT(
 ) {
   try {
     // Check admin authentication
-    const { user, error, response } = await requireAdmin(request);
+    const { response } = await requireAdmin(request);
     if (response) return response;
 
     await connectDB();
@@ -134,9 +134,9 @@ export async function PUT(
       { success: true, data: userResponse },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to update user' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to update user' },
       { status: 500 }
     );
   }
@@ -152,7 +152,7 @@ export async function DELETE(
 ) {
   try {
     // Check admin authentication
-    const { user, error, response } = await requireAdmin(request);
+    const { user, response } = await requireAdmin(request);
     if (response) return response;
 
     await connectDB();
@@ -188,9 +188,9 @@ export async function DELETE(
       { success: true, message: 'User deleted successfully' },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to delete user' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to delete user' },
       { status: 500 }
     );
   }

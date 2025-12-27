@@ -11,7 +11,12 @@ import { ISong } from "@/models/Song";
  */
 export default function Topbar() {
   const router = useRouter();
-  const [user, setUser] = useState<any>(null);
+  interface User {
+    id: string;
+    name: string;
+    email: string;
+  }
+  const [user, setUser] = useState<User | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<ISong[]>([]);
@@ -117,7 +122,7 @@ export default function Topbar() {
     }
   };
 
-  const handleResultClick = (song: ISong) => {
+  const handleResultClick = () => {
     setShowSearchResults(false);
     router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
   };
@@ -296,7 +301,7 @@ export default function Topbar() {
                         }}
                         className="w-full flex items-center justify-center gap-2 p-3 rounded-lg hover:bg-[#3a3a3a] transition-colors text-white font-semibold"
                       >
-                        <span>Show all results for "{searchQuery}"</span>
+                        <span>Show all results for &quot;{searchQuery}&quot;</span>
                         <svg
                           className="w-5 h-5"
                           fill="none"

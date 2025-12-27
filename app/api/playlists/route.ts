@@ -44,9 +44,9 @@ export async function GET(request: NextRequest) {
     const playlists = await Playlist.find({ userId }).populate('songs').sort({ createdAt: -1 });
 
     return NextResponse.json({ success: true, data: playlists }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch playlists' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch playlists' },
       { status: 500 }
     );
   }
@@ -100,9 +100,9 @@ export async function POST(request: NextRequest) {
     const populatedPlaylist = await Playlist.findById(playlist._id).populate('songs');
 
     return NextResponse.json({ success: true, data: populatedPlaylist }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to create playlist' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to create playlist' },
       { status: 500 }
     );
   }
@@ -136,7 +136,7 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Invalid playlist ID' }, { status: 400 });
     }
 
-    const updateData: any = {};
+    const updateData: Record<string, unknown> = {};
     if (songs !== undefined) {
       updateData.songs = songs;
     }
@@ -167,9 +167,9 @@ export async function PUT(request: NextRequest) {
     }).populate('songs');
 
     return NextResponse.json({ success: true, data: updatedPlaylist }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to update playlist' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to update playlist' },
       { status: 500 }
     );
   }
@@ -220,9 +220,9 @@ export async function DELETE(request: NextRequest) {
     await playlist.deleteOne();
 
     return NextResponse.json({ success: true }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to delete playlist' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to delete playlist' },
       { status: 500 }
     );
   }

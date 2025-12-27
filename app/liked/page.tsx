@@ -17,7 +17,12 @@ export default function LikedSongsPage() {
   const [likedSongs, setLikedSongs] = useState<ISong[]>([]);
   const [loading, setLoading] = useState(true);
   const [showSongMenuId, setShowSongMenuId] = useState<string | null>(null);
-  const [menuPlaylists, setMenuPlaylists] = useState<any[]>([]);
+  interface Playlist {
+    _id: string;
+    name: string;
+    songs: string[] | ISong[];
+  }
+  const [menuPlaylists, setMenuPlaylists] = useState<Playlist[]>([]);
   const [menuPlaylistsLoaded, setMenuPlaylistsLoaded] = useState(false);
   const { showToast } = useToast();
   const [sortOption, setSortOption] = useState<
@@ -385,7 +390,7 @@ export default function LikedSongsPage() {
                           ) : (
                             menuPlaylists.map((p) => {
                               const existingIds = Array.isArray(p.songs)
-                                ? p.songs.map((s: any) =>
+                                ? p.songs.map((s) =>
                                     ensureSongId(
                                       typeof s === "string" ? s : s._id
                                     )

@@ -3,6 +3,11 @@
 import { useEffect, useState } from "react";
 import { getAuthHeaders } from "@/lib/adminAuth";
 
+interface Song {
+  _id: string;
+  title?: string;
+}
+
 interface Playlist {
   _id: string;
   name: string;
@@ -11,7 +16,7 @@ interface Playlist {
     name: string;
     email: string;
   };
-  songs: any[];
+  songs: Song[];
   createdAt: string;
 }
 
@@ -39,6 +44,7 @@ export default function AdminPlaylistsPage() {
   useEffect(() => {
     fetchPlaylists();
     fetchUsers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const fetchPlaylists = async () => {
@@ -116,7 +122,7 @@ export default function AdminPlaylistsPage() {
         body: JSON.stringify({
           name: formData.name,
           userId: formData.userId,
-          songs: editingPlaylist?.songs?.map((s: any) => s._id || s) || [],
+          songs: editingPlaylist?.songs?.map((s) => s._id || s) || [],
         }),
       });
 

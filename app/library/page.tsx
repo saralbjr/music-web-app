@@ -13,7 +13,13 @@ import { ISong } from "@/models/Song";
 export default function LibraryPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [playlists, setPlaylists] = useState<any[]>([]);
+  interface Playlist {
+    _id: string;
+    name: string;
+    songs: string[] | ISong[];
+    coverUrl?: string;
+  }
+  const [playlists, setPlaylists] = useState<Playlist[]>([]);
   const [likedSongs, setLikedSongs] = useState<ISong[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"playlists" | "liked">(

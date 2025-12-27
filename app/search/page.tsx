@@ -128,7 +128,7 @@ export default function SearchPage() {
           {/* Category Tiles */}
           <h1 className="text-2xl font-bold mb-6">Browse all</h1>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-            {categories.map((category, index) => (
+            {categories.map((category) => (
               <button
                 key={category.name}
                 onClick={() => handleCategoryClick(category.name)}

@@ -71,10 +71,10 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Upload error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to upload image" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to upload image" },
       { status: 500 }
     );
   }

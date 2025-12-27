@@ -10,7 +10,7 @@ import { requireAdmin } from '@/lib/middleware/auth';
 export async function GET(request: NextRequest) {
   try {
     // Check admin authentication
-    const { user, error, response } = await requireAdmin(request);
+    const { response } = await requireAdmin(request);
     if (response) return response;
 
     await connectDB();
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
 
     // Build query
-    let query: any = {};
+    const query: Record<string, unknown> = {};
     if (search) {
       query.$or = [
         { title: { $regex: search, $options: 'i' } },
@@ -49,9 +49,9 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch songs' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch songs' },
       { status: 500 }
     );
   }
@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check admin authentication
-    const { user, error, response } = await requireAdmin(request);
+    const { response } = await requireAdmin(request);
     if (response) return response;
 
     await connectDB();
@@ -91,9 +91,9 @@ export async function POST(request: NextRequest) {
     });
 
     return NextResponse.json({ success: true, data: song }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to create song' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to create song' },
       { status: 500 }
     );
   }

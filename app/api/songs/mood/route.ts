@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     await connectDB();
 
     // Fetch songs with the specified mood
-    let songs = await Song.find({ mood }).limit(limit).lean<ISong[]>();
+    const songs = await Song.find({ mood }).limit(limit).lean<ISong[]>();
 
     // If auto-detect is enabled and we don't have enough songs, detect mood for songs without it
     if (autoDetect && songs.length < limit) {

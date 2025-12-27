@@ -88,7 +88,7 @@ export default function SearchResultsPage() {
           Back
         </button>
         <h1 className="text-3xl font-bold mb-2">
-          Search results for "{query}"
+          Search results for &quot;{query}&quot;
         </h1>
         <p className="text-gray-400 text-sm">
           {songs.length} {songs.length === 1 ? "result" : "results"} found

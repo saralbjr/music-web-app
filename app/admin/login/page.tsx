@@ -48,8 +48,8 @@ export default function AdminLoginPage() {
       } else {
         setError("Admin access required");
       }
-    } catch (err: any) {
-      setError(err.message || "An error occurred");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }

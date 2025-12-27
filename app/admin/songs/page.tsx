@@ -41,6 +41,7 @@ export default function AdminSongsPage() {
 
   useEffect(() => {
     fetchSongs();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [search]);
 
   const fetchSongs = async () => {
@@ -261,9 +262,9 @@ export default function AdminSongsPage() {
       setImageFile(null);
       setDetectedDuration(null);
       fetchSongs();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Error saving song:", error);
-      setModalError(error.message || "Failed to save song.");
+      setModalError(error instanceof Error ? error.message : "Failed to save song.");
     } finally {
       setSaving(false);
     }

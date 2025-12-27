@@ -41,9 +41,9 @@ export async function GET(request: NextRequest) {
       { success: true, data: toResponseUser(userDoc) },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to fetch profile" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to fetch profile" },
       { status: 500 }
     );
   }
@@ -83,9 +83,9 @@ export async function PUT(request: NextRequest) {
       { success: true, data: toResponseUser(userDoc) },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to update profile" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to update profile" },
       { status: 500 }
     );
   }

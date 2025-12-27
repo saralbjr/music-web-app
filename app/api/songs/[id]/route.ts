@@ -30,9 +30,9 @@ export async function GET(
     await song.save();
 
     return NextResponse.json({ success: true, data: song.toObject() }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to fetch song' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to fetch song' },
       { status: 500 }
     );
   }
@@ -65,9 +65,9 @@ export async function PUT(
     }
 
     return NextResponse.json({ success: true, data: song.toObject() }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to update song' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to update song' },
       { status: 500 }
     );
   }
@@ -97,9 +97,9 @@ export async function DELETE(
     }
 
     return NextResponse.json({ success: true, message: 'Song deleted successfully' }, { status: 200 });
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || 'Failed to delete song' },
+      { success: false, error: error instanceof Error ? error.message : 'Failed to delete song' },
       { status: 500 }
     );
   }

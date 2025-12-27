@@ -9,7 +9,7 @@ import User from "@/models/User";
  */
 export async function GET(request: NextRequest) {
   try {
-    const { user, error, response } = await requireAdmin(request);
+    const { user, response } = await requireAdmin(request);
     if (response) {
       return response;
     }
@@ -44,9 +44,9 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
-      { success: false, error: error.message || "Verification failed" },
+      { success: false, error: error instanceof Error ? error.message : "Verification failed" },
       { status: 500 }
     );
   }

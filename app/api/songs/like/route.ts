@@ -90,10 +90,10 @@ export async function POST(request: NextRequest) {
         { status: 200 }
       );
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("Like song error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to like/unlike song" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to like/unlike song" },
       { status: 500 }
     );
   }
@@ -124,7 +124,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Convert to plain objects
-    const likedSongs = userDoc.likedSongs.map((song: any) => song.toObject());
+    const likedSongs = userDoc.likedSongs.map((song) => song.toObject());
 
     return NextResponse.json(
       {
@@ -133,10 +133,10 @@ export async function GET(request: NextRequest) {
       },
       { status: 200 }
     );
-  } catch (error: any) {
+  } catch (error) {
     console.error("Get liked songs error:", error);
     return NextResponse.json(
-      { success: false, error: error.message || "Failed to get liked songs" },
+      { success: false, error: error instanceof Error ? error.message : "Failed to get liked songs" },
       { status: 500 }
     );
   }
