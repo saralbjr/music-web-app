@@ -46,6 +46,7 @@ export default function PlaylistsPage() {
     }
 
     fetchPlaylists();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [router]);
 
   const fetchPlaylists = async () => {

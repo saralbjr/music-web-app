@@ -609,6 +609,7 @@ export default function PlaylistPage() {
       >
         <div className="flex flex-wrap items-end gap-6">
           {coverImage ? (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={coverImage}
               alt={playlist.name}
@@ -840,6 +841,7 @@ export default function PlaylistPage() {
                   </div>
                   <div className="flex items-center gap-3 min-w-0">
                     {song.coverFile ? (
+                      // eslint-disable-next-line @next/next/no-img-element
                       <img
                         src={song.coverFile}
                         alt={song.title}
@@ -1062,6 +1064,7 @@ export default function PlaylistPage() {
                 <div className="mt-2 space-y-3">
                   {coverPreview && (
                     <div className="relative w-32 h-32 rounded-lg overflow-hidden border border-white/20">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
                       <img
                         src={coverPreview}
                         alt="Cover preview"
@@ -1232,6 +1235,7 @@ export default function PlaylistPage() {
                     >
                       <div className="w-12 h-12 rounded-lg overflow-hidden bg-white/5 flex-shrink-0">
                         {song.coverFile ? (
+                          // eslint-disable-next-line @next/next/no-img-element
                           <img
                             src={song.coverFile}
                             alt={song.title}

@@ -313,6 +313,7 @@ export default function LikedSongsPage() {
                 </div>
                 <div className="flex items-center gap-3 min-w-0">
                   {song.coverFile ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={song.coverFile}
                       alt={song.title}

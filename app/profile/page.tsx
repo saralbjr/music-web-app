@@ -133,6 +133,7 @@ export default function ProfilePage() {
         <div className="flex flex-wrap items-end gap-8">
           <div className="w-48 h-48 rounded-full bg-emerald-500 shadow-2xl flex items-center justify-center overflow-hidden ring-8 ring-emerald-400/40">
             {user?.image ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={user.image}
                 alt={displayName}

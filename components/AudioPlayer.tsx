@@ -292,7 +292,7 @@ export default function AudioPlayer() {
     } finally {
       setLiking(false);
     }
-  }, [currentSong]);
+  }, [currentSong, trackBehavior]);
 
   // Throttled time update handler
   const handleTimeUpdate = useCallback(() => {

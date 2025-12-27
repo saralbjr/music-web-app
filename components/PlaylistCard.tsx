@@ -50,6 +50,7 @@ export default function PlaylistCard({
         <div className="bg-gradient-to-b from-[#2a2a2a] to-[#181818] rounded-2xl p-4 hover:scale-105 transition-transform duration-200 shadow-lg hover:shadow-2xl cursor-pointer">
           <div className="aspect-square rounded-xl overflow-hidden mb-4 bg-[#242424] relative">
             {coverImage ? (
+              // eslint-disable-next-line @next/next/no-img-element
               <img
                 src={coverImage}
                 alt={playlist.name}

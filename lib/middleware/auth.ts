@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { verifyToken, extractTokenFromHeader } from "@/lib/jwt";
 import connectDB from "@/lib/db";
-import User, { IUser } from "@/models/User";
+import User from "@/models/User";
 
 export interface AuthenticatedRequest extends NextRequest {
   user?: {
