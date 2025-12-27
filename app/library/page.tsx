@@ -1,16 +1,15 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import PlaylistCard from "@/components/PlaylistCard";
 import SongCard from "@/components/SongCard";
 import { ISong } from "@/models/Song";
 
 /**
- * Spotify-style Library Page
- * User's playlists and liked songs
+ * Library Page Content Component
  */
-export default function LibraryPage() {
+function LibraryPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   interface Playlist {
@@ -189,6 +188,18 @@ export default function LibraryPage() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Spotify-style Library Page
+ * User's playlists and liked songs
+ */
+export default function LibraryPage() {
+  return (
+    <Suspense fallback={<div className="text-gray-400 p-8">Loading...</div>}>
+      <LibraryPageContent />
+    </Suspense>
   );
 }
 

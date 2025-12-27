@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SongCard from "@/components/SongCard";
 import { ISong } from "@/models/Song";
 
 /**
- * Search Results Page
- * Shows all search results for a query
+ * Search Results Page Content Component
  */
-export default function SearchResultsPage() {
+function SearchResultsPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get("q") || "";
@@ -115,6 +114,18 @@ export default function SearchResultsPage() {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * Search Results Page
+ * Shows all search results for a query
+ */
+export default function SearchResultsPage() {
+  return (
+    <Suspense fallback={<div className="text-gray-400 p-8">Loading...</div>}>
+      <SearchResultsPageContent />
+    </Suspense>
   );
 }
 

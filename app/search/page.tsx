@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import SongCard from "@/components/SongCard";
 import { ISong } from "@/models/Song";
@@ -58,10 +58,9 @@ const categories = [
 ];
 
 /**
- * Spotify-style Search Page
- * Category tiles and search results
+ * Search Page Content Component
  */
-export default function SearchPage() {
+function SearchPageContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const query = searchParams.get("q") || "";
@@ -263,5 +262,17 @@ export default function SearchPage() {
         </>
       )}
     </div>
+  );
+}
+
+/**
+ * Spotify-style Search Page
+ * Category tiles and search results
+ */
+export default function SearchPage() {
+  return (
+    <Suspense fallback={<div className="text-gray-400 p-8">Loading...</div>}>
+      <SearchPageContent />
+    </Suspense>
   );
 }
