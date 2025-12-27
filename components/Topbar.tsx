@@ -124,7 +124,7 @@ export default function Topbar() {
     }
   };
 
-  const handleResultClick = (_song?: ISong) => {
+  const handleResultClick = () => {
     setShowSearchResults(false);
     router.push(`/search?q=${encodeURIComponent(searchQuery)}`);
   };
@@ -242,7 +242,7 @@ export default function Topbar() {
                     {searchResults.map((song) => (
                       <button
                         key={String(song._id)}
-                        onClick={() => handleResultClick(song)}
+                        onClick={() => handleResultClick()}
                         className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-[#3a3a3a] transition-colors text-left group"
                       >
                         {song.coverFile ? (
@@ -304,7 +304,9 @@ export default function Topbar() {
                         }}
                         className="w-full flex items-center justify-center gap-2 p-3 rounded-lg hover:bg-[#3a3a3a] transition-colors text-white font-semibold"
                       >
-                        <span>Show all results for &quot;{searchQuery}&quot;</span>
+                        <span>
+                          Show all results for &quot;{searchQuery}&quot;
+                        </span>
                         <svg
                           className="w-5 h-5"
                           fill="none"
