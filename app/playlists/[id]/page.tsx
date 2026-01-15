@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
+import { createPortal } from "react-dom";
 import { ISong } from "@/models/Song";
 import { useAudioStore } from "@/lib/store/audioStore";
 import { fisherYatesShuffle } from "@/lib/algorithms/shuffle";
@@ -50,6 +51,17 @@ export default function PlaylistPage() {
   const [sortOption, setSortOption] = useState<PlaylistSortOption>("added");
   const [sortMenuOpen, setSortMenuOpen] = useState(false);
   const { showToast } = useToast();
+  const [menuPosition, setMenuPosition] = useState({ top: 0, right: 0 });
+
+  // Close menus on scroll
+  useEffect(() => {
+    const handleScroll = () => {
+      if (sortMenuOpen) setSortMenuOpen(false);
+      if (showSongMenuId) setShowSongMenuId(null);
+    };
+    window.addEventListener("scroll", handleScroll, true);
+    return () => window.removeEventListener("scroll", handleScroll, true);
+  }, [sortMenuOpen, showSongMenuId]);
 
   useEffect(() => {
     fetchPlaylist();
@@ -727,7 +739,14 @@ export default function PlaylistPage() {
               <div className="relative">
                 <button
                   type="button"
-                  onClick={() => setSortMenuOpen((prev) => !prev)}
+                  onClick={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setMenuPosition({
+                      top: rect.bottom + 8,
+                      right: window.innerWidth - rect.right,
+                    });
+                    setSortMenuOpen((prev) => !prev);
+                  }}
                   className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 hover:bg-white/10 text-xs text-gray-200 border border-white/10"
                 >
                   <svg
@@ -748,34 +767,44 @@ export default function PlaylistPage() {
                     {sortLabel[sortOption]}
                   </span>
                 </button>
-                {sortMenuOpen && (
-                  <div className="absolute right-0 mt-2 w-52 rounded-xl bg-[#181818] border border-white/10 shadow-xl text-xs text-gray-200 py-1 z-[55]">
-                    {(Object.keys(sortLabel) as PlaylistSortOption[]).map(
-                      (option) => (
-                        <button
-                          key={option}
-                          type="button"
-                          onClick={() => {
-                            setSortOption(option);
-                            setSortMenuOpen(false);
-                          }}
-                          className={`w-full flex items-center justify-between px-3 py-2 hover:bg-white/10 ${
-                            sortOption === option ? "text-white" : ""
-                          }`}
-                        >
-                          <span>{sortLabel[option]}</span>
-                          {sortOption === option && (
-                            <span className="text-blue-400 text-[10px]">●</span>
-                          )}
-                        </button>
-                      )
-                    )}
-                  </div>
+                {sortMenuOpen && createPortal(
+                  <>
+                    <div className="fixed inset-0 z-[9998]" onClick={() => setSortMenuOpen(false)} />
+                    <div
+                      className="fixed z-[9999] w-52 rounded-xl bg-[#181818] border border-white/10 shadow-xl text-xs text-gray-200 py-1"
+                      style={{
+                        top: `${menuPosition.top}px`,
+                        right: `${menuPosition.right}px`,
+                      }}
+                    >
+                      {(Object.keys(sortLabel) as PlaylistSortOption[]).map(
+                        (option) => (
+                          <button
+                            key={option}
+                            type="button"
+                            onClick={() => {
+                              setSortOption(option);
+                              setSortMenuOpen(false);
+                            }}
+                            className={`w-full flex items-center justify-between px-3 py-2 hover:bg-white/10 ${
+                              sortOption === option ? "text-white" : ""
+                            }`}
+                          >
+                            <span>{sortLabel[option]}</span>
+                            {sortOption === option && (
+                              <span className="text-blue-400 text-[10px]">●</span>
+                            )}
+                          </button>
+                        )
+                      )}
+                    </div>
+                  </>,
+                  document.body
                 )}
               </div>
             </div>
             {/* Table Header */}
-            <div className="sticky top-16 z-10 grid grid-cols-[16px_1fr_1fr_auto] md:grid-cols-[40px_minmax(0,3fr)_minmax(0,2fr)_minmax(0,2fr)_auto] gap-4 px-8 py-3 text-xs text-gray-400 border-b border-[#282828] bg-[#121212]/95 backdrop-blur">
+            <div className="top-16 z-10 grid grid-cols-[16px_1fr_1fr_auto] md:grid-cols-[40px_minmax(0,3fr)_minmax(0,2fr)_minmax(0,2fr)_auto] gap-4 px-8 py-3 text-xs text-gray-400 border-b border-[#282828] bg-[#121212]/95 backdrop-blur">
               <div>#</div>
               <div>TITLE</div>
               <div className="hidden md:block">ALBUM</div>
@@ -805,17 +834,11 @@ export default function PlaylistPage() {
                 >
                   <div className="flex items-center text-gray-400 group-hover:text-white">
                     {isPlayingSong ? (
-                      <svg
-                        className="w-4 h-4 text-blue-500"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M18 3a1 1 0 00-1.447-.894L8.763 6H5a3 3 0 000 6h.28l1.771 5.316A1 1 0 008 18h1a1 1 0 001-1v-4.382l6.553 3.276A1 1 0 0018 15V3z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                      <div className="flex items-end gap-0.5 h-4">
+                        <span className="w-1 bg-blue-400 rounded-full animate-equalizer-1" />
+                        <span className="w-1 bg-blue-400 rounded-full animate-equalizer-2" />
+                        <span className="w-1 bg-blue-400 rounded-full animate-equalizer-3" />
+                      </div>
                     ) : (
                       <span className="group-hover:hidden">{index + 1}</span>
                     )}
@@ -880,6 +903,11 @@ export default function PlaylistPage() {
                         type="button"
                         onClick={(e) => {
                           e.stopPropagation();
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          setMenuPosition({
+                            top: rect.bottom + 8,
+                            right: window.innerWidth - rect.right,
+                          });
                           setShowSongMenuId((current) =>
                             current === songId ? null : songId
                           );
@@ -899,8 +927,16 @@ export default function PlaylistPage() {
                         </svg>
                       </button>
 
-                      {showSongMenuId === songId && (
-                        <div className="absolute right-0 top-8 z-[60] w-56 bg-[#282828] rounded-xl shadow-xl border border-white/10 py-1 text-sm">
+                      {showSongMenuId === songId && createPortal(
+                        <>
+                          <div className="fixed inset-0 z-[9998]" onClick={() => setShowSongMenuId(null)} />
+                          <div
+                            className="fixed z-[9999] w-56 bg-[#282828] rounded-xl shadow-xl border border-white/10 py-1 text-sm"
+                            style={{
+                              top: `${menuPosition.top}px`,
+                              right: `${menuPosition.right}px`,
+                            }}
+                          >
                           <button
                             type="button"
                             onClick={(e) => {
@@ -1013,6 +1049,8 @@ export default function PlaylistPage() {
                             )}
                           </div>
                         </div>
+                        </>,
+                        document.body
                       )}
                     </div>
                   </div>
@@ -1316,6 +1354,29 @@ export default function PlaylistPage() {
           </div>
         </div>
       )}
+      <style jsx>{`
+        @keyframes equalizer-1 {
+          0%, 100% { height: 4px; }
+          50% { height: 16px; }
+        }
+        @keyframes equalizer-2 {
+          0%, 100% { height: 8px; }
+          50% { height: 12px; }
+        }
+        @keyframes equalizer-3 {
+          0%, 100% { height: 6px; }
+          50% { height: 14px; }
+        }
+        .animate-equalizer-1 {
+          animation: equalizer-1 0.5s ease-in-out infinite;
+        }
+        .animate-equalizer-2 {
+          animation: equalizer-2 0.6s ease-in-out infinite 0.1s;
+        }
+        .animate-equalizer-3 {
+          animation: equalizer-3 0.5s ease-in-out infinite 0.2s;
+        }
+      `}</style>
     </div>
   );
 }

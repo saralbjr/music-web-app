@@ -6,8 +6,8 @@ import Link from "next/link";
 import { ISong } from "@/models/Song";
 
 /**
- * Spotify-style Topbar Component
- * Search bar and user info at the top
+ * Glassmorphism Topbar Component
+ * Premium search bar and user info with glass effects
  */
 export default function Topbar() {
   const router = useRouter();
@@ -102,7 +102,7 @@ export default function Topbar() {
         } finally {
           setSearchLoading(false);
         }
-      }, 300); // 300ms debounce
+      }, 300);
     } else {
       setSearchResults([]);
       setShowSearchResults(false);
@@ -148,7 +148,10 @@ export default function Topbar() {
   };
 
   return (
-    <div className="h-16 bg-[#121212] border-b border-[#282828] flex items-center justify-between px-6 sticky top-0 z-30">
+    <div className="h-16 bg-[#0a0a0f]/70 backdrop-blur-xl border-b border-white/[0.06] flex items-center justify-between px-6 sticky top-0 z-30">
+      {/* Subtle gradient line at bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-blue-500/20 to-transparent" />
+
       {/* Search Bar */}
       <div className="flex-1 max-w-2xl mx-8" ref={searchRef}>
         <form onSubmit={handleSearch} className="relative group">
@@ -159,12 +162,12 @@ export default function Topbar() {
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               onFocus={handleInputFocus}
-              className="w-full bg-[#2a2a2a] text-white px-14 py-3 pl-14 pr-12 rounded-full text-sm placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-white focus:bg-[#333] transition-all duration-200 hover:bg-[#2f2f2f] border border-transparent focus:border-white/20"
+              className="w-full bg-white/[0.06] text-white px-14 py-3 pl-14 pr-12 rounded-full text-sm placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:bg-white/[0.08] transition-all duration-300 hover:bg-white/[0.08] border border-white/[0.08] focus:border-blue-500/30 backdrop-blur-sm"
             />
             <div className="absolute left-5 top-1/2 -translate-y-1/2 pointer-events-none">
               {searchLoading ? (
                 <svg
-                  className="w-5 h-5 text-gray-400 animate-spin"
+                  className="w-5 h-5 text-blue-400 animate-spin"
                   fill="none"
                   viewBox="0 0 24 24"
                 >
@@ -184,7 +187,7 @@ export default function Topbar() {
                 </svg>
               ) : (
                 <svg
-                  className="w-5 h-5 text-gray-400 group-focus-within:text-white transition-colors"
+                  className="w-5 h-5 text-white/40 group-focus-within:text-blue-400 transition-colors duration-200"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -206,7 +209,7 @@ export default function Topbar() {
                   setSearchResults([]);
                   setShowSearchResults(false);
                 }}
-                className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors p-1 rounded-full hover:bg-[#404040]"
+                className="absolute right-4 top-1/2 -translate-y-1/2 text-white/40 hover:text-white transition-colors p-1.5 rounded-full hover:bg-white/10"
                 aria-label="Clear search"
               >
                 <svg
@@ -225,28 +228,30 @@ export default function Topbar() {
               </button>
             )}
           </div>
-          {/* Subtle glow effect on focus */}
-          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/0 via-purple-500/0 to-pink-500/0 group-focus-within:from-blue-500/10 group-focus-within:via-purple-500/10 group-focus-within:to-pink-500/10 blur-xl -z-10 transition-all duration-300"></div>
+
+          {/* Glow effect on focus */}
+          <div className="absolute inset-0 rounded-full bg-gradient-to-r from-blue-500/0 via-cyan-500/0 to-sky-500/0 group-focus-within:from-blue-500/10 group-focus-within:via-cyan-500/10 group-focus-within:to-sky-500/10 blur-xl -z-10 transition-all duration-500"></div>
 
           {/* Search Results Dropdown */}
           {showSearchResults && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-[#282828] rounded-lg shadow-2xl border border-[#404040] max-h-[500px] overflow-y-auto z-50">
+            <div className="absolute top-full left-0 right-0 mt-3 bg-[#12121a]/95 backdrop-blur-2xl rounded-2xl shadow-2xl shadow-black/50 border border-white/[0.08] max-h-[500px] overflow-hidden z-50 animate-fade-in-down">
               {searchLoading ? (
-                <div className="p-6 text-center">
-                  <div className="animate-spin w-6 h-6 border-2 border-white border-t-transparent rounded-full mx-auto"></div>
-                  <p className="text-gray-400 text-sm mt-2">Searching...</p>
+                <div className="p-8 text-center">
+                  <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                  <p className="text-white/50 text-sm mt-3">Searching...</p>
                 </div>
               ) : searchResults.length > 0 ? (
                 <>
                   <div className="p-2">
-                    {searchResults.map((song) => (
+                    {searchResults.map((song, index) => (
                       <button
                         key={String(song._id)}
                         onClick={() => handleResultClick()}
-                        className="w-full flex items-center gap-3 p-3 rounded-lg hover:bg-[#3a3a3a] transition-colors text-left group"
+                        className="w-full flex items-center gap-4 p-3 rounded-xl hover:bg-white/[0.06] transition-all duration-200 text-left group"
+                        style={{ animationDelay: `${index * 50}ms` }}
                       >
                         {song.coverFile ? (
-                          <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
+                          <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 ring-1 ring-white/10 group-hover:ring-blue-500/30 transition-all">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={song.coverFile}
@@ -255,9 +260,9 @@ export default function Topbar() {
                             />
                           </div>
                         ) : (
-                          <div className="w-12 h-12 rounded-md bg-[#404040] flex items-center justify-center flex-shrink-0">
+                          <div className="w-12 h-12 rounded-lg bg-white/[0.06] flex items-center justify-center flex-shrink-0 ring-1 ring-white/10">
                             <svg
-                              className="w-6 h-6 text-gray-500"
+                              className="w-5 h-5 text-white/30"
                               fill="currentColor"
                               viewBox="0 0 20 20"
                             >
@@ -270,15 +275,15 @@ export default function Topbar() {
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-white font-medium truncate group-hover:text-blue-400 transition-colors">
+                          <p className="text-white font-medium truncate group-hover:text-blue-300 transition-colors">
                             {song.title}
                           </p>
-                          <p className="text-gray-400 text-sm truncate">
+                          <p className="text-white/50 text-sm truncate">
                             {song.artist}
                           </p>
                         </div>
                         <svg
-                          className="w-5 h-5 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                          className="w-5 h-5 text-white/20 opacity-0 group-hover:opacity-100 group-hover:text-blue-400 transition-all transform group-hover:translate-x-1"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -294,7 +299,7 @@ export default function Topbar() {
                     ))}
                   </div>
                   {searchQuery.trim() && (
-                    <div className="border-t border-[#404040] p-2">
+                    <div className="border-t border-white/[0.06] p-2">
                       <button
                         onClick={() => {
                           setShowSearchResults(false);
@@ -302,13 +307,13 @@ export default function Topbar() {
                             `/search?q=${encodeURIComponent(searchQuery)}`
                           );
                         }}
-                        className="w-full flex items-center justify-center gap-2 p-3 rounded-lg hover:bg-[#3a3a3a] transition-colors text-white font-semibold"
+                        className="w-full flex items-center justify-center gap-2 p-3 rounded-xl hover:bg-white/[0.06] transition-all text-white font-medium group"
                       >
-                        <span>
+                        <span className="text-blue-400">
                           Show all results for &quot;{searchQuery}&quot;
                         </span>
                         <svg
-                          className="w-5 h-5"
+                          className="w-4 h-4 text-blue-400 group-hover:translate-x-1 transition-transform"
                           fill="none"
                           stroke="currentColor"
                           viewBox="0 0 24 24"
@@ -325,9 +330,14 @@ export default function Topbar() {
                   )}
                 </>
               ) : searchQuery.trim().length > 0 ? (
-                <div className="p-6 text-center">
-                  <p className="text-gray-400">No results found</p>
-                  <p className="text-gray-500 text-sm mt-1">
+                <div className="p-8 text-center">
+                  <div className="w-16 h-16 rounded-full bg-white/[0.04] flex items-center justify-center mx-auto mb-4">
+                    <svg className="w-8 h-8 text-white/20" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-white/60 font-medium">No results found</p>
+                  <p className="text-white/40 text-sm mt-1">
                     Try searching with different keywords
                   </p>
                 </div>
@@ -344,7 +354,7 @@ export default function Topbar() {
             {isAdmin && (
               <Link
                 href="/admin/upload"
-                className="text-gray-400 hover:text-white transition-colors text-sm font-semibold"
+                className="text-white/50 hover:text-white transition-colors text-sm font-medium px-4 py-2 rounded-full hover:bg-white/[0.06]"
               >
                 Upload
               </Link>
@@ -353,11 +363,11 @@ export default function Topbar() {
               <button
                 type="button"
                 onClick={() => setMenuOpen((prev) => !prev)}
-                className="flex items-center gap-3 bg-[#181818] px-3 py-1.5 rounded-full hover:bg-[#282828] transition-colors"
+                className="flex items-center gap-3 bg-white/[0.06] hover:bg-white/[0.1] px-3 py-1.5 rounded-full transition-all duration-200 border border-white/[0.06] hover:border-white/[0.1] group"
                 aria-haspopup="menu"
                 aria-expanded={menuOpen}
               >
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-blue-500 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-gradient-to-br from-blue-500 to-cyan-600 flex items-center justify-center ring-2 ring-white/10 group-hover:ring-blue-500/30 transition-all">
                   {user.image ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
@@ -372,11 +382,11 @@ export default function Topbar() {
                     </span>
                   )}
                 </div>
-                <span className="text-white text-sm font-semibold">
+                <span className="text-white text-sm font-medium">
                   {user.name}
                 </span>
                 <svg
-                  className="w-4 h-4 text-gray-400"
+                  className={`w-4 h-4 text-white/50 transition-transform duration-200 ${menuOpen ? 'rotate-180' : ''}`}
                   fill="currentColor"
                   viewBox="0 0 20 20"
                 >
@@ -388,27 +398,45 @@ export default function Topbar() {
                 </svg>
               </button>
               {menuOpen && (
-                <div className="absolute right-0 mt-2 w-48 rounded-lg bg-[#282828] border border-[#3e3e3e] shadow-lg py-2 z-40">
-                  <Link
-                    href="/profile"
-                    className="block px-4 py-2 text-sm text-white hover:bg-[#181818] transition-colors"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Profile
-                  </Link>
-                  <Link
-                    href="/profile/settings"
-                    className="block px-4 py-2 text-sm text-white hover:bg-[#181818] transition-colors"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    Account settings
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-[#181818] transition-colors"
-                  >
-                    Log out
-                  </button>
+                <div className="absolute right-0 mt-3 w-56 rounded-2xl bg-[#12121a]/95 backdrop-blur-2xl border border-white/[0.08] shadow-2xl shadow-black/50 py-2 z-40 animate-fade-in-down overflow-hidden">
+                  <div className="px-4 py-3 border-b border-white/[0.06]">
+                    <p className="text-sm font-semibold text-white truncate">{user.name}</p>
+                    <p className="text-xs text-white/40 truncate">{user.email}</p>
+                  </div>
+                  <div className="py-1">
+                    <Link
+                      href="/profile"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/[0.06] transition-colors"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                      Profile
+                    </Link>
+                    <Link
+                      href="/profile/settings"
+                      className="flex items-center gap-3 px-4 py-2.5 text-sm text-white/80 hover:text-white hover:bg-white/[0.06] transition-colors"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                      Settings
+                    </Link>
+                  </div>
+                  <div className="border-t border-white/[0.06] py-1">
+                    <button
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 w-full text-left px-4 py-2.5 text-sm text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-colors"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                      </svg>
+                      Log out
+                    </button>
+                  </div>
                 </div>
               )}
             </div>
@@ -416,9 +444,10 @@ export default function Topbar() {
         ) : (
           <Link
             href="/auth/login"
-            className="px-4 py-2 bg-white text-black rounded-full text-sm font-semibold hover:scale-105 transition-transform"
+            className="group relative px-5 py-2.5 rounded-full text-sm font-semibold overflow-hidden"
           >
-            Log in
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-cyan-500 transition-transform group-hover:scale-105" />
+            <span className="relative text-white">Log in</span>
           </Link>
         )}
       </div>

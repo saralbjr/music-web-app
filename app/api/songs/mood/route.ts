@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import connectDB from "@/lib/db";
-import Song, { ISong } from "@/models/Song";
+import Song, { ISong, Category } from "@/models/Song";
 import { authenticateUser } from "@/lib/middleware/auth";
-import { detectMoodFromCategory, Mood } from "@/lib/algorithms/moodDetection";
+import {
+  detectMoodFromCategory,
+  detectMoodFromAudioFeatures,
+  Mood,
+} from "@/lib/algorithms/moodDetection";
+import { estimateAudioFeaturesFromCategory } from "@/lib/algorithms/audioFeatures";
 
 /**
  * GET /api/songs/mood
@@ -110,9 +115,14 @@ export async function GET(request: NextRequest) {
  * POST /api/songs/mood
  *
  * Bulk mood assignment endpoint
- * Auto-detects and assigns mood to songs that don't have one
+ * Auto-detects and assigns mood to songs that don't have one (or need updating)
+ * Uses audio feature-based detection (Method 2) for better accuracy
  *
  * Computer Science Concept: Batch Processing
+ *
+ * Query Parameters:
+ * - updateAll: If true, updates all songs (even those with existing mood). Default: false
+ * - updateFeatures: If true, also estimates and updates audio features. Default: true
  */
 export async function POST(request: NextRequest) {
   try {
@@ -126,28 +136,91 @@ export async function POST(request: NextRequest) {
 
     await connectDB();
 
-    // Find all songs without mood
-    const songsWithoutMood = await Song.find({
-      $or: [{ mood: { $exists: false } }, { mood: null }],
-    }).lean<ISong[]>();
+    const searchParams = request.nextUrl.searchParams;
+    const updateAll = searchParams.get("updateAll") === "true";
+    const updateFeatures = searchParams.get("updateFeatures") !== "false"; // Default: true
+
+    // Find songs to update
+    const query = updateAll
+      ? {} // Update all songs
+      : {
+          $or: [{ mood: { $exists: false } }, { mood: null }],
+        };
+
+    const songsToUpdate = await Song.find(query).lean<ISong[]>();
 
     let updated = 0;
-    const { detectMoodFromCategory } = await import(
-      "@/lib/algorithms/moodDetection"
-    );
+    let featuresUpdated = 0;
 
-    // Assign mood to each song using rule-based detection
-    for (const song of songsWithoutMood) {
-      const detectedMood = detectMoodFromCategory(song.category || "");
-      await Song.findByIdAndUpdate(song._id, { mood: detectedMood });
+    // Process each song
+    for (const song of songsToUpdate) {
+      const updateData: Partial<ISong> = {};
+
+      // Estimate and update audio features if requested
+      if (updateFeatures && song.category) {
+        try {
+          const { tempo, energy, valence } = estimateAudioFeaturesFromCategory(
+            song.category as Category
+          );
+          updateData.tempo = tempo;
+          updateData.energy = energy;
+          updateData.valence = valence;
+          featuresUpdated++;
+        } catch (err) {
+          console.warn(
+            `Failed to estimate features for song ${song._id}:`,
+            err
+          );
+        }
+      }
+
+      // Determine mood using audio features if available, otherwise category
+      try {
+        if (
+          updateData.tempo !== undefined &&
+          updateData.energy !== undefined &&
+          updateData.valence !== undefined
+        ) {
+          // Use audio feature-based detection
+          updateData.mood = detectMoodFromAudioFeatures(
+            updateData.tempo,
+            updateData.energy,
+            updateData.valence
+          );
+        } else if (
+          song.tempo !== undefined &&
+          song.energy !== undefined &&
+          song.valence !== undefined
+        ) {
+          // Use existing audio features
+          updateData.mood = detectMoodFromAudioFeatures(
+            song.tempo,
+            song.energy,
+            song.valence
+          );
+        } else {
+          // Fallback to category-based detection
+          updateData.mood = detectMoodFromCategory(song.category || "");
+        }
+      } catch (err) {
+        console.warn(`Failed to detect mood for song ${song._id}:`, err);
+        // Fallback to category-based
+        updateData.mood = detectMoodFromCategory(song.category || "");
+      }
+
+      // Update the song
+      await Song.findByIdAndUpdate(song._id, updateData);
       updated++;
     }
 
     return NextResponse.json(
       {
         success: true,
-        message: `Assigned mood to ${updated} songs`,
+        message: `Updated ${updated} songs${
+          featuresUpdated > 0 ? ` (${featuresUpdated} with audio features)` : ""
+        }`,
         updated,
+        featuresUpdated,
       },
       { status: 200 }
     );
@@ -157,14 +230,9 @@ export async function POST(request: NextRequest) {
       {
         success: false,
         error:
-          error instanceof Error
-            ? error.message
-            : "Failed to assign moods",
+          error instanceof Error ? error.message : "Failed to assign moods",
       },
       { status: 500 }
     );
   }
 }
-
-
-

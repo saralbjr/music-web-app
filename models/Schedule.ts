@@ -115,4 +115,3 @@ const Schedule: Model<ISchedule> =
 
 export default Schedule;
 
-

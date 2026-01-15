@@ -37,3 +37,13 @@ next-env.d.ts
 
 # data storage (file-based)
 /data/songs.json
+
+#scripts
+scripts
+
+#README
+AUTOMATIC_MOOD_CLASSIFICATION_FLOW.md
+UPDATE_ALL_SONGS_GUIDE.md
+MOOD_CLASSIFICATION_ANALYSIS.md
+EXISTING_SONGS_MOOD_UPDATE.md
+AUTOMATIC_MOOD_IMPLEMENTATION.md

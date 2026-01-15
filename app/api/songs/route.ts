@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { mergeSort } from "@/lib/algorithms/mergeSort";
 import { kmpMatch, calculateSearchScore } from "@/lib/algorithms/kmp";
 import connectDB from "@/lib/db";
-import Song from "@/models/Song";
+import Song, { Category } from "@/models/Song";
 import { requireAdmin } from "@/lib/middleware/auth";
+import { estimateAudioFeaturesFromCategory } from "@/lib/algorithms/audioFeatures";
+import { detectMoodFromAudioFeatures } from "@/lib/algorithms/moodDetection";
 
 type SongDTO = {
   _id: string;
@@ -138,16 +140,49 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate category is a valid enum value
+    const validCategories: Category[] = [
+      "Pop",
+      "Rock",
+      "Hip Hop",
+      "Jazz",
+      "Electronic",
+      "Classical",
+      "Country",
+      "R&B",
+      "Indie",
+    ];
+    if (!validCategories.includes(category as Category)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid category" },
+        { status: 400 }
+      );
+    }
+
     // Use MongoDB
     await connectDB();
+
+    // Automatically estimate audio features from category
+    const { tempo, energy, valence } = estimateAudioFeaturesFromCategory(
+      category as Category
+    );
+
+    // Automatically classify mood from audio features
+    const mood = detectMoodFromAudioFeatures(tempo, energy, valence);
+
+    // Create song with automatically determined audio features and mood
     const song = await Song.create({
       title,
       artist,
       duration,
       audioFile,
       coverFile,
-      category,
+      category: category as Category,
       playCount: 0,
+      tempo,
+      energy,
+      valence,
+      mood, // Automatically classified - no user input required
     });
 
     return NextResponse.json({ success: true, data: song }, { status: 201 });

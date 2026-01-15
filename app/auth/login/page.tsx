@@ -6,7 +6,7 @@ import Link from "next/link";
 
 /**
  * Login Page
- * User authentication page
+ * Premium glassmorphism design with animated background
  */
 export default function LoginPage() {
   const router = useRouter();
@@ -52,115 +52,150 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4">
-      <div className="max-w-md w-full bg-gray-900 rounded-lg p-8">
-        <h1 className="text-3xl font-bold text-white mb-6 text-center">
-          Login
-        </h1>
+    <div className="min-h-screen flex items-center justify-center px-4 relative overflow-hidden bg-[#0a0a0f]">
+      {/* Animated Background Orbs */}
+      <div className="fixed inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-1/4 -left-32 w-[500px] h-[500px] bg-gradient-to-br from-blue-500/30 via-cyan-500/20 to-transparent rounded-full blur-[100px] animate-float-slow" />
+        <div className="absolute bottom-1/4 -right-32 w-[600px] h-[600px] bg-gradient-to-tl from-indigo-500/25 via-blue-500/15 to-transparent rounded-full blur-[120px] animate-float-slower" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-gradient-radial from-blue-500/10 to-transparent rounded-full" />
+      </div>
 
-        {error && (
-          <div className="bg-red-500 text-white p-4 rounded mb-4">{error}</div>
-        )}
+      {/* Grain Overlay */}
+      <div className="fixed inset-0 opacity-[0.015] pointer-events-none bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIzMDAiIGhlaWdodD0iMzAwIj48ZmlsdGVyIGlkPSJhIiB4PSIwIiB5PSIwIj48ZmVUdXJidWxlbmNlIGJhc2VGcmVxdWVuY3k9Ii43NSIgc3RpdGNoVGlsZXM9InN0aXRjaCIgdHlwZT0iZnJhY3RhbE5vaXNlIi8+PC9maWx0ZXI+PHJlY3QgZmlsdGVyPSJ1cmwoI2EpIiBoZWlnaHQ9IjEwMCUiIHdpZHRoPSIxMDAlIi8+PC9zdmc+')]" />
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label htmlFor="email" className="block text-sm font-medium mb-2">
-              Email
-            </label>
-            <input
-              type="email"
-              id="email"
-              value={formData.email}
-              onChange={(e) =>
-                setFormData({ ...formData, email: e.target.value })
-              }
-              required
-              className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-blue-500 focus:outline-none"
-            />
+      {/* Glassmorphism Card */}
+      <div className="relative z-10 w-full max-w-md">
+        {/* Glow effect behind card */}
+        <div className="absolute -inset-1 bg-gradient-to-r from-blue-500/20 via-cyan-500/20 to-indigo-500/20 rounded-3xl blur-xl opacity-70" />
+
+        <div className="relative bg-white/[0.03] backdrop-blur-2xl rounded-3xl p-8 border border-white/10 shadow-2xl shadow-black/20">
+          {/* Logo/Icon */}
+          <div className="flex justify-center mb-6">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 flex items-center justify-center shadow-lg shadow-blue-500/25">
+              <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19V6l12-3v13M9 19c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zm12-3c0 1.105-1.343 2-3 2s-3-.895-3-2 1.343-2 3-2 3 .895 3 2zM9 10l12-3" />
+              </svg>
+            </div>
           </div>
 
-          <div className="relative">
-            <label
-              htmlFor="password"
-              className="block text-sm font-medium mb-2"
-            >
-              Password
-            </label>
-            <input
-              type={showPassword ? "text" : "password"}
-              id="password"
-              value={formData.password}
-              onChange={(e) =>
-                setFormData({ ...formData, password: e.target.value })
-              }
-              required
-              className="w-full px-4 py-2 pr-12 bg-gray-800 text-white rounded border border-gray-700 focus:border-blue-500 focus:outline-none"
-            />
+          <h1 className="text-3xl font-bold text-white mb-2 text-center">
+            Welcome Back
+          </h1>
+          <p className="text-white/50 text-center mb-8">
+            Sign in to continue to SoundWave
+          </p>
+
+          {error && (
+            <div className="bg-red-500/10 border border-red-500/30 text-red-400 px-4 py-3 rounded-xl mb-6 text-sm backdrop-blur-sm">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-5">
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-white/70 mb-2">
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                value={formData.email}
+                onChange={(e) =>
+                  setFormData({ ...formData, email: e.target.value })
+                }
+                required
+                className="w-full px-4 py-3 bg-white/[0.05] text-white rounded-xl border border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 placeholder-white/30"
+                placeholder="you@example.com"
+              />
+            </div>
+
+            <div className="relative">
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-white/70 mb-2"
+              >
+                Password
+              </label>
+              <input
+                type={showPassword ? "text" : "password"}
+                id="password"
+                value={formData.password}
+                onChange={(e) =>
+                  setFormData({ ...formData, password: e.target.value })
+                }
+                required
+                className="w-full px-4 py-3 pr-12 bg-white/[0.05] text-white rounded-xl border border-white/10 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all duration-200 placeholder-white/30"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute bottom-3 right-4 text-white/40 hover:text-white/80 transition-colors"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21" />
+                  </svg>
+                ) : (
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                  </svg>
+                )}
+              </button>
+            </div>
+
             <button
-              type="button"
-              onClick={() => setShowPassword((prev) => !prev)}
-              className="absolute bottom-2.5 right-3 text-gray-400 hover:text-white transition"
-              aria-label={showPassword ? "Hide password" : "Show password"}
+              type="submit"
+              disabled={loading}
+              className="w-full py-3 px-4 bg-gradient-to-r from-blue-500 to-cyan-500 hover:from-blue-600 hover:to-cyan-600 text-white font-semibold rounded-xl transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 hover:scale-[1.02] active:scale-[0.98]"
             >
-              {showPassword ? (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M13.875 18.825A10.05 10.05 0 0112 19.5c-5.243 0-9.735-3.523-11.25-8.25a11.766 11.766 0 012.82-4.918m3.32-2.606A11.992 11.992 0 0112 2.25c5.243 0 9.735 3.523 11.25 8.25a11.966 11.966 0 01-4.816 6.306M3 3l18 18"
-                  />
-                </svg>
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin w-5 h-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  Signing in...
+                </span>
               ) : (
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-5 w-5"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M2.25 12C3.765 7.273 8.257 3.75 13.5 3.75c5.243 0 9.735 3.523 11.25 8.25-1.515 4.727-6.007 8.25-11.25 8.25-5.243 0-9.735-3.523-11.25-8.25z"
-                  />
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={1.5}
-                    d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                  />
-                </svg>
+                "Sign In"
               )}
             </button>
+          </form>
+
+          <div className="mt-8 pt-6 border-t border-white/10 text-center">
+            <p className="text-white/50">
+              Don&apos;t have an account?{" "}
+              <Link
+                href="/auth/register"
+                className="text-blue-400 hover:text-blue-300 font-medium transition-colors"
+              >
+                Create one
+              </Link>
+            </p>
           </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? "Logging in..." : "Login"}
-          </button>
-        </form>
-
-        <p className="mt-6 text-center text-gray-400">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/auth/register"
-            className="text-blue-500 hover:text-blue-400"
-          >
-            Register
-          </Link>
-        </p>
+        </div>
       </div>
+
+      {/* Custom Animations */}
+      <style jsx>{`
+        @keyframes float-slow {
+          0%, 100% { transform: translate(0, 0) rotate(0deg); }
+          50% { transform: translate(30px, -30px) rotate(5deg); }
+        }
+        @keyframes float-slower {
+          0%, 100% { transform: translate(0, 0) rotate(0deg); }
+          50% { transform: translate(-20px, 20px) rotate(-3deg); }
+        }
+        .animate-float-slow {
+          animation: float-slow 20s ease-in-out infinite;
+        }
+        .animate-float-slower {
+          animation: float-slower 25s ease-in-out infinite;
+        }
+      `}</style>
     </div>
   );
 }

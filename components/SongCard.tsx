@@ -3,6 +3,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { ISong } from "@/models/Song";
 import { useAudioStore } from "@/lib/store/audioStore";
 import { useToast } from "@/components/ToastProvider";
@@ -340,11 +341,11 @@ export default function SongCard({
           </svg>
         </button>
 
-        {/* Dropdown menu */}
-        {showMenu && (
+        {/* Dropdown menu - Use Portal to avoid overflow and stacking issues */}
+        {showMenu && createPortal(
           <div
             ref={menuRef}
-            className="fixed z-[100] w-56 bg-[#282828] rounded-xl shadow-xl border border-white/10 py-1 text-sm"
+            className="fixed z-[9999] w-56 bg-[#282828] rounded-xl shadow-xl border border-white/10 py-1 text-sm"
             style={{
               top: `${menuPosition.top}px`,
               right: `${menuPosition.right}px`,
@@ -395,7 +396,8 @@ export default function SongCard({
                 })
               )}
             </div>
-          </div>
+          </div>,
+          document.body
         )}
 
         <div className="relative mb-4">

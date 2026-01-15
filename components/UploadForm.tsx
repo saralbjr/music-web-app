@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useState } from "react";
+import { useRouter } from "next/navigation";
 
 /**
  * UploadForm Component
@@ -10,12 +10,12 @@ import { useRouter } from 'next/navigation';
 export default function UploadForm() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [success, setSuccess] = useState(false);
   const [formData, setFormData] = useState({
-    title: '',
-    artist: '',
-    category: '',
+    title: "",
+    artist: "",
+    category: "",
   });
   const [audioFile, setAudioFile] = useState<File | null>(null);
   const [imageFile, setImageFile] = useState<File | null>(null);
@@ -30,36 +30,42 @@ export default function UploadForm() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-    setError('');
+    setError("");
     setSuccess(false);
 
     try {
       const storedUser =
-        localStorage.getItem('adminUser') || localStorage.getItem('user');
+        localStorage.getItem("adminUser") || localStorage.getItem("user");
       const token =
-        localStorage.getItem('adminToken') || localStorage.getItem('token');
+        localStorage.getItem("adminToken") || localStorage.getItem("token");
       const parsedUser = storedUser ? JSON.parse(storedUser) : null;
 
-      if (!parsedUser || parsedUser.role !== 'admin') {
-        throw new Error('Admin access required');
+      if (!parsedUser || parsedUser.role !== "admin") {
+        throw new Error("Admin access required");
       }
 
       if (!token) {
-        throw new Error('Authentication token missing');
+        throw new Error("Authentication token missing");
       }
 
       // Validate form
-      if (!formData.title || !formData.artist || !formData.category || !audioFile || !imageFile) {
-        throw new Error('All fields are required');
+      if (
+        !formData.title ||
+        !formData.artist ||
+        !formData.category ||
+        !audioFile ||
+        !imageFile
+      ) {
+        throw new Error("All fields are required");
       }
 
       // Upload files
       const uploadFormData = new FormData();
-      uploadFormData.append('audio', audioFile);
-      uploadFormData.append('image', imageFile);
+      uploadFormData.append("audio", audioFile);
+      uploadFormData.append("image", imageFile);
 
-      const uploadResponse = await fetch('/api/upload', {
-        method: 'POST',
+      const uploadResponse = await fetch("/api/upload", {
+        method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -67,13 +73,15 @@ export default function UploadForm() {
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload files');
+        throw new Error("Failed to upload files");
       }
 
       const uploadData = await uploadResponse.json();
       const detectedDuration = uploadData?.data?.duration;
       if (!detectedDuration || detectedDuration <= 0) {
-        throw new Error('Could not determine audio duration. Please try a different file.');
+        throw new Error(
+          "Could not determine audio duration. Please try a different file."
+        );
       }
 
       // Create song
@@ -86,35 +94,35 @@ export default function UploadForm() {
         coverFile: uploadData.data.coverUrl,
       };
 
-      const songResponse = await fetch('/api/songs', {
-        method: 'POST',
+      const songResponse = await fetch("/api/songs", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(songData),
       });
 
       if (!songResponse.ok) {
-        throw new Error('Failed to create song');
+        throw new Error("Failed to create song");
       }
 
       setSuccess(true);
-      setFormData({ title: '', artist: '', category: '' });
+      setFormData({ title: "", artist: "", category: "" });
       setAudioFile(null);
       setImageFile(null);
 
       // Reset file inputs
-      const audioInput = document.getElementById('audio') as HTMLInputElement;
-      const imageInput = document.getElementById('image') as HTMLInputElement;
-      if (audioInput) audioInput.value = '';
-      if (imageInput) imageInput.value = '';
+      const audioInput = document.getElementById("audio") as HTMLInputElement;
+      const imageInput = document.getElementById("image") as HTMLInputElement;
+      if (audioInput) audioInput.value = "";
+      if (imageInput) imageInput.value = "";
 
       setTimeout(() => {
         router.refresh();
       }, 1000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : "An error occurred");
     } finally {
       setLoading(false);
     }
@@ -123,9 +131,7 @@ export default function UploadForm() {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       {error && (
-        <div className="bg-red-500 text-white p-4 rounded">
-          {error}
-        </div>
+        <div className="bg-red-500 text-white p-4 rounded">{error}</div>
       )}
 
       {success && (
@@ -168,15 +174,27 @@ export default function UploadForm() {
         <label htmlFor="category" className="block text-sm font-medium mb-2">
           Category *
         </label>
-        <input
-          type="text"
+        <select
           id="category"
           name="category"
           value={formData.category}
-          onChange={handleInputChange}
+          onChange={(e) =>
+            setFormData({ ...formData, category: e.target.value })
+          }
           required
           className="w-full px-4 py-2 bg-gray-800 text-white rounded border border-gray-700 focus:border-blue-500 focus:outline-none"
-        />
+        >
+          <option value="">Select a category</option>
+          <option value="Pop">Pop</option>
+          <option value="Rock">Rock</option>
+          <option value="Hip Hop">Hip Hop</option>
+          <option value="Jazz">Jazz</option>
+          <option value="Electronic">Electronic</option>
+          <option value="Classical">Classical</option>
+          <option value="Country">Country</option>
+          <option value="R&B">R&B</option>
+          <option value="Indie">Indie</option>
+        </select>
       </div>
 
       <div>
@@ -214,9 +232,8 @@ export default function UploadForm() {
         disabled={loading}
         className="w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? 'Uploading...' : 'Upload Song'}
+        {loading ? "Uploading..." : "Upload Song"}
       </button>
     </form>
   );
 }
-

@@ -27,7 +27,7 @@ function SearchResultsPageContent() {
     setLoading(true);
     try {
       // Check if it's a category search (common category names)
-      const categories = ["Pop", "Rock", "Hip Hop", "Jazz", "Electronic", "Classical", "Country", "R&B"];
+      const categories = ["Pop", "Rock", "Hip Hop", "Jazz", "Electronic", "Classical", "Country", "R&B", "Indie"];
       const isCategory = categories.some(cat => cat.toLowerCase() === searchQuery.toLowerCase());
 
       const url = isCategory
